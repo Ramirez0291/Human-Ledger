@@ -179,3 +179,40 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+# ===== 人类账本 =====
+# ---- 数据（绝不入库）----
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# ---- 密钥与环境 ----
+.env
+.env.local
+*.pem
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Node ----
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Python 模板里的 lib/ 会误伤前端源码目录
+!frontend/src/lib/
