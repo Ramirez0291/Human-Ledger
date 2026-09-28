@@ -1,8 +1,3 @@
-"""元数据与总览：系统信息、OCR 方案状态、月度概览。
-
-类目接口已移至 app/api/routers/categories.py。
-"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -39,7 +34,6 @@ def system_info(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),  # noqa: ARG001
 ) -> dict:
-    """数据库与迁移状态。供「关于」页与里程碑验证界面展示。"""
     insp = inspect(db.get_bind())
     tables = [t for t in insp.get_table_names() if t != "alembic_version"]
     revision = db.execute(text("SELECT version_num FROM alembic_version")).scalar()
@@ -54,7 +48,6 @@ def system_info(
 
 @router.get("/ocr/providers")
 def ocr_providers(user: User = Depends(get_current_user)) -> dict:  # noqa: ARG001
-    """截图识别方案的配置状态。M0/M1 阶段三者均未接入，此处如实反映。"""
     return {
         "active": settings.ocr_provider,
         "providers": provider_status(),
@@ -68,7 +61,6 @@ def summary(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """总览页数据：月度收支、账户余额、按类目的支出构成、最近交易、对账提醒。"""
     today = dt.date.today()
     ym = year_month or f"{today.year:04d}-{today.month:02d}"
 
@@ -77,7 +69,6 @@ def summary(
     start = dt.date.fromisoformat(f"{ym}-01")
     end = (start.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
 
-    # ---- 账户余额 ----
     balances = compute_balances(db, user.id)
     accounts = (
         db.query(Account)
@@ -96,8 +87,6 @@ def summary(
         for a in accounts
     ]
 
-    # ---- 本月支出按大分類构成 ----
-    # 子类目的支出上卷到其父类目，避免总览页出现几十个细项
     parent_expr = func.coalesce(Category.parent_id, Category.id)
     rows = db.execute(
         select(parent_expr.label("top_id"), func.sum(Transaction.amount))
@@ -138,7 +127,6 @@ def summary(
             )
         breakdown.sort(key=lambda x: x["amount"], reverse=True)
 
-    # 未分类支出单列，提醒用户去补分类
     uncategorized = int(
         db.query(func.coalesce(func.sum(Transaction.amount), 0))
         .filter(
@@ -153,7 +141,6 @@ def summary(
         or 0
     )
 
-    # ---- 对账提醒 ----
     alerts = []
     for a in accounts:
         last = db.execute(

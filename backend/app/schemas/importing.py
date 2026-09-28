@@ -8,13 +8,9 @@ from app.db.enums import BatchStatus, CategorySource, Direction, DupStatus, Matc
 
 
 class TextImportRequest(BaseModel):
-    """文本粘贴导入：把截图上的文字按行贴进来（等价于本地 OCR 的输出）。"""
-
     account_id: int
     text: str = Field(min_length=1, max_length=200_000)
-    # 支払月锚点（YYYY-MM），用于无年份日期的年份推断；不传则从文本中的年月标题推断
     statement_month: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")
-    # 已有草稿批次时追加到该批次（多张截图合并判重），否则新建
     batch_id: int | None = None
 
 
@@ -66,13 +62,11 @@ class BatchOut(BaseModel):
     file_count: int
     note: str | None
     created_at: dt.datetime
-    # 概览计数
     total_rows: int = 0
     selected_rows: int = 0
     excluded_rows: int = 0
     duplicate_rows: int = 0
     maybe_rows: int = 0
-    # 已确认 / 已撤销批次：入账概况（导入记录用）
     ledger_rows: int = 0
     date_from: dt.date | None = None
     date_to: dt.date | None = None
@@ -88,7 +82,6 @@ class BatchDetail(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     detected_balance: int | None = None
     statement_month: str | None = None
-    # 同一份文本之前导入过
     previously_imported: bool = False
 
 
@@ -102,18 +95,13 @@ class StagedRowUpdate(BaseModel):
     memo: str | None = None
     is_selected: bool | None = None
     counterpart_account_id: int | None = None
-    # 显式清空对方账户
     clear_counterpart: bool = False
-    # 显式清空类别
     clear_category: bool = False
-    # 改了类别时，把同批次里同一商家（或同品牌）且尚未由用户改过的行一起改掉。
-    # 这是待确认区提速的关键：一个月 15 笔 RakutenTurbo 只需改一次。
     apply_to_similar: bool = True
 
 
 class StagedRowPatchOut(BaseModel):
     row: StagedRowOut
-    # 因 apply_to_similar 连带更新的其他行
     affected: list[StagedRowOut] = []
 
 
@@ -138,9 +126,6 @@ class ConfirmOut(BaseModel):
     skipped_duplicate: int = 0
     reconcile: dict | None
     warnings: list[str]
-
-
-# ---- 规则 ----
 
 
 class RuleCreate(BaseModel):

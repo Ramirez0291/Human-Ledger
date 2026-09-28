@@ -1,11 +1,4 @@
-/**
- * 手写 SVG 图表的公共零件：刻度、柱形、斜纹填充。
- *
- * 不引图表库的前提下，几张图共用这些，保证柱子圆角、刻度取整、
- * 「除外部分」的斜纹在各处长得一样。
- */
 
-/** 把原始步长凑到 1 / 2 / 5 × 10^n，刻度才是好读的整数 */
 export function niceStep(raw: number): number {
   if (raw <= 0) return 1
   const mag = 10 ** Math.floor(Math.log10(raw))
@@ -14,7 +7,6 @@ export function niceStep(raw: number): number {
   return f * mag
 }
 
-/** 值域 → 取整后的上下界与刻度。至少包含 0，负值（结余）允许出现 */
 export function niceScale(maxValue: number, minValue = 0, ticks = 4) {
   const hi = Math.max(1, maxValue)
   const lo = Math.min(0, minValue)
@@ -26,10 +18,6 @@ export function niceScale(maxValue: number, minValue = 0, ticks = 4) {
   return { top, bottom, step, values }
 }
 
-/**
- * 只把远离基线的一端做圆角的柱子。y0 是基线，y1 是柱顶（y1 < y0）。
- * roundTop=false 用于堆叠在下层的段：它的顶上还压着一段，不该圆。
- */
 export function BarPath({
   x,
   y0,
@@ -57,10 +45,6 @@ export function BarPath({
   return <path d={d} className={className} fill={fill} />
 }
 
-/**
- * 45° 斜纹：表示「被除外、不计入分析」的那部分。
- * 用同色系而不是灰色，一眼能看出它原本属于哪条序列。
- */
 export function HatchPattern({ id, className }: { id: string; className: string }) {
   return (
     <pattern id={id} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -70,7 +54,6 @@ export function HatchPattern({ id, className }: { id: string; className: string 
   )
 }
 
-/** 指针在图上的横坐标 → 第几个槽位。支持鼠标与触屏 */
 export function slotFromPointer(
   e: React.PointerEvent<SVGElement>,
   left: number,

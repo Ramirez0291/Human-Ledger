@@ -6,7 +6,6 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 interface Props {
   onDone: (user: User) => void
-  /** setup：首次初始化（唯一入口）；register：已有用户时的自助注册 */
   mode?: 'setup' | 'register'
   onBack?: () => void
 }

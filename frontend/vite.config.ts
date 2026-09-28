@@ -9,7 +9,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // 开发时后端独立运行在 8000，由 Vite 代理，前端代码始终用相对路径 /api
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',

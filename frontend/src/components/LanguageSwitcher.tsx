@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LOCALES, applyLocale } from '../i18n'
 
 interface Props {
-  /** 已登录时同时把偏好写回后端，使其跨设备保持一致 */
   onPersist?: (locale: string) => void
 }
 

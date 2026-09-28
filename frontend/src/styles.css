@@ -1,33 +1,16 @@
-/* ==========================================================================
-   设计令牌 —— 玻璃拟态 × 金融科技
-   浅色「简洁明亮」为基准，深色「赛博朋克」仅覆盖同名变量——
-   避免出现只在某一主题下定义的颜色。
-
-   两层表面：
-   - 玻璃层（--glass-*）：卡片、页头、导航、弹窗。半透明 + backdrop-filter，
-     只用于容器，不用于列表行——几百行同时开模糊会拖垮低端手机。
-   - 实体层（--surface-solid / --surface-raised）：提示框、下拉、分段控件选中项，
-     这些浮在玻璃之上的小元素必须不透明，否则叠加两层模糊会发灰。
-   ========================================================================== */
 
 :root {
-  /* 字体：中日英混排，需同时覆盖三种字形。日文字形优先于中文字形，
-     因为账目中的商家名绝大多数是日文。不引入网络字体——CJK 字体动辄数 MB，
-     且本项目常部署在家庭服务器上。 */
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', 'Noto Sans JP',
     'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif;
-  /* 金额使用等宽数字，保证纵向对齐 */
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Consolas, monospace;
 
-  /* ---- 页面底色与极光光斑（浅色：天蓝 / 淡紫 / 薄荷）---- */
   --bg: #eef2f8;
   --bg-glow-1: rgba(56, 189, 248, 0.38);
   --bg-glow-2: rgba(167, 139, 250, 0.32);
   --bg-glow-3: rgba(52, 211, 153, 0.26);
   --bg-grid: transparent;
 
-  /* ---- 玻璃 ---- */
   --glass-bg: rgba(255, 255, 255, 0.62);
   --glass-bg-strong: rgba(255, 255, 255, 0.78);
   --glass-border: rgba(255, 255, 255, 0.85);
@@ -36,20 +19,17 @@
   --glass-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 36px rgba(15, 23, 42, 0.08);
   --glass-shadow-hover: 0 1px 2px rgba(15, 23, 42, 0.05), 0 16px 44px rgba(15, 23, 42, 0.12);
 
-  /* ---- 实体表面 ---- */
-  --surface: rgba(255, 255, 255, 0.7); /* 输入框、行 hover 等玻璃内部的小面 */
+  --surface: rgba(255, 255, 255, 0.7);
   --surface-solid: #ffffff;
-  --surface-2: rgba(15, 23, 42, 0.05); /* 凹陷容器：分段控件、标签、进度条底 */
-  --surface-raised: #ffffff; /* 浮在 surface-2 之上的选中项，深色下也必须比容器亮 */
-  --border: rgba(15, 23, 42, 0.08); /* 列表分隔线 */
-  --border-strong: rgba(15, 23, 42, 0.16); /* 输入框描边 */
+  --surface-2: rgba(15, 23, 42, 0.05);
+  --surface-raised: #ffffff;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
 
   --text: #0f172a;
   --text-muted: #475569;
   --text-faint: #5f6b7d;
 
-  /* 主色：蓝 600。次色（紫）只用于品牌标与装饰，不做按钮渐变——
-     金融产品要避免「AI 紫粉渐变」的廉价感。 */
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --accent-soft: rgba(37, 99, 235, 0.12);
@@ -77,7 +57,6 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* ---- 赛博朋克：深海军蓝底 + 青 / 品红霓虹光斑 + 极淡 HUD 网格 ---- */
     --bg: #070a12;
     --bg-glow-1: rgba(34, 211, 238, 0.28);
     --bg-glow-2: rgba(232, 121, 249, 0.22);
@@ -121,10 +100,6 @@
   }
 }
 
-/* ==========================================================================
-   基础
-   ========================================================================== */
-
 *,
 *::before,
 *::after {
@@ -148,8 +123,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* 极光背景：固定在视口上，滚动时玻璃始终有东西可以模糊。
-   不用 background-attachment: fixed——iOS Safari 不支持。 */
 body::before {
   content: '';
   position: fixed;
@@ -163,7 +136,6 @@ body::before {
     var(--bg);
 }
 
-/* HUD 网格：浅色下透明，深色下 5% 的细线。 */
 body::after {
   content: '';
   position: fixed;
@@ -204,7 +176,6 @@ a {
   color: var(--accent);
 }
 
-/* 键盘焦点：所有可交互元素统一 2px 外描边，不靠 box-shadow 藏着 */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -213,10 +184,6 @@ a {
 ::selection {
   background: var(--accent-soft);
 }
-
-/* ==========================================================================
-   表单
-   ========================================================================== */
 
 .field {
   display: flex;
@@ -254,7 +221,6 @@ select {
     background-color var(--dur) var(--ease);
 }
 
-/* 自绘下拉箭头：用一个两种主题下都能看清的中灰，省掉两套图 */
 select {
   appearance: none;
   -webkit-appearance: none;
@@ -334,7 +300,6 @@ button:disabled {
   border-color: var(--accent);
 }
 
-/* 触屏上主要按钮与导航项抬到 44px 命中区 */
 @media (pointer: coarse) {
   .btn-primary,
   .btn-ghost,
@@ -343,10 +308,6 @@ button:disabled {
     min-height: 44px;
   }
 }
-
-/* ==========================================================================
-   布局
-   ========================================================================== */
 
 .center-screen {
   display: grid;
@@ -387,7 +348,6 @@ button:disabled {
   color: var(--text-muted);
 }
 
-/* 品牌标：青 → 紫渐变圆角方块，内嵌 ¥ 线条。深色下带霓虹外发光。 */
 .brand-mark {
   flex: none;
   display: inline-grid;
@@ -426,7 +386,6 @@ button:disabled {
   min-height: 100%;
 }
 
-/* 页头与导航合为一块吸顶玻璃，导航不再需要按页头高度硬算偏移 */
 .app-top {
   position: sticky;
   top: 0;
@@ -446,8 +405,7 @@ button:disabled {
   padding: 12px 20px 8px;
 }
 
-/* flex 默认允许收缩，窄屏下会把「人类账本」「退出登录」压成竖排单字，
-   因此品牌与按钮必须禁止收缩并禁止换行，由整行 wrap 来分担空间。 */
+/* Brand and buttons must not shrink or wrap on narrow screens. */
 .app-header .brand,
 .app-header .btn-ghost {
   flex: none;
@@ -473,10 +431,6 @@ button:disabled {
   margin: 0 auto;
   padding: 28px 20px 64px;
 }
-
-/* ==========================================================================
-   卡片与组件
-   ========================================================================== */
 
 .card {
   padding: 20px;
@@ -575,8 +529,6 @@ button:disabled {
   background: var(--surface-2);
 }
 
-/* 类目树 */
-
 .cat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
@@ -608,8 +560,6 @@ button:disabled {
   color: var(--text-muted);
 }
 
-/* Provider 列表 */
-
 .provider-row {
   display: flex;
   align-items: center;
@@ -631,8 +581,6 @@ button:disabled {
   font-size: 0.8125rem;
   color: var(--text-muted);
 }
-
-/* 语言切换 */
 
 .lang-switch {
   display: flex;
@@ -663,8 +611,6 @@ button:disabled {
   background: var(--surface-raised);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
 }
-
-/* 提示条 */
 
 .alert {
   padding: 10px 12px;
@@ -699,7 +645,6 @@ button:disabled {
 }
 
 @media (max-width: 560px) {
-  /* 窄屏改为两行：第一行品牌 + 退出，第二行语言切换独占整行 */
   .app-header {
     padding: 10px 14px 6px;
     gap: 8px 10px;
@@ -726,8 +671,6 @@ button:disabled {
   }
 }
 
-/* ---- 登录 / 注册 切换 ---- */
-
 .auth-switch {
   margin: 16px 0 0;
   font-size: 0.8125rem;
@@ -744,8 +687,6 @@ button:disabled {
   cursor: pointer;
   text-decoration: underline;
 }
-
-/* ---- 类目管理（设置页与待确认区共用）---- */
 
 .cat-manage-toolbar {
   display: flex;
@@ -777,10 +718,6 @@ button:disabled {
 .chip-btn.danger {
   color: var(--danger);
 }
-
-/* ==========================================================================
-   动效偏好：系统要求减少动画时，关掉所有过渡与位移
-   ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
   *,

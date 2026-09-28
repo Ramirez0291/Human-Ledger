@@ -5,18 +5,11 @@ import { api, type ImportBatch } from '../api/client'
 import { formatDateShort } from '../lib/format'
 
 interface Props {
-  /** 撤销 / 清理之后，余额等要跟着刷新 */
   onChanged?: () => void | Promise<void>
 }
 
 const SHOW = 8
 
-/**
- * 导入记录：已确认的批次，带「入账多少笔、哪些账户、哪段日期」以及与其他批次的重叠。
- *
- * 同一份明细被导两次（两个草稿同时开着、选错了账户）时，暂存阶段的判重拦不住，
- * 报表会被翻倍的支出撑大。这里把重叠摆出来，让用户整批撤销或只删重复的那部分。
- */
 export function ImportHistory({ onChanged }: Props) {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
@@ -70,13 +63,11 @@ export function ImportHistory({ onChanged }: Props) {
       <ul className="history-list">
         {shown.map((b) => {
           const reverted = b.status === 'reverted'
-          // 两份重叠时，后导入的那份是多出来的：按钮只出现在它上面，更早的那批只提示
           const label = ([id, n]: [string, number]) =>
             id === '0' ? t('history.manual', { count: n }) : t('history.otherBatch', { id, count: n })
           const entries = Object.entries(b.overlaps).sort((x, y) => y[1] - x[1])
           const earlier = entries.filter(([id]) => Number(id) < b.id).map(label)
           const later = entries.filter(([id]) => Number(id) > b.id).map(label)
-          // 几乎整批都在更早的记录里：这批就是多导的一份，建议整批撤销
           const mostly = b.ledger_rows > 0 && b.redundant_rows >= b.ledger_rows * 0.9
           return (
             <li key={b.id} className={reverted ? 'reverted' : ''}>

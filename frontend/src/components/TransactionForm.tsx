@@ -7,11 +7,9 @@ import { CategorySelect } from './CategorySelect'
 import { MoneyInput } from './MoneyInput'
 
 interface Props {
-  /** 传入即为编辑模式 */
   existing?: Transaction | null
   onSaved: () => void
   onCancel: () => void
-  /** 编辑时提供删除入口。窄屏没有行内操作按钮，删除只能从这里走 */
   onDelete?: () => void
 }
 
@@ -40,15 +38,12 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // 类别是否由用户手动指定过。手动指定后就不再被自动预测覆盖。
   const categoryTouched = useRef(!!existing?.category_id)
 
-  // 默认选中第一个账户
   useEffect(() => {
     if (accountId === '' && accounts.length) setAccountId(accounts[0].id)
   }, [accounts, accountId])
 
-  // 商家名变化时取补全候选，并按商家记忆预测类别
   useEffect(() => {
     const q = merchant.trim()
     if (!q) {
@@ -114,8 +109,6 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
     }
   }
 
-  // 转账的两条腿必须保持一致，金额与方向不允许单独改（后端也会拒绝）。
-  // 此处只展示信息与删除入口，避免用户填了半天再被拒。
   if (existing?.transfer_group_id) {
     return (
       <div className="txn-form">

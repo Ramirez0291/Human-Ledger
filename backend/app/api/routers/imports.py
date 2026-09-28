@@ -1,9 +1,3 @@
-"""导入与待确认区（需求书 F3.4 / F4）。
-
-当前来源：文本粘贴（截图上的文字按行贴入）。截图 OCR 与 CSV 接入后，
-只是多几个「产出 RawTransaction」的入口，之后的判重、分类、确认全部复用。
-"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -56,7 +50,6 @@ router = APIRouter(prefix="/imports", tags=["imports"])
 
 
 # --------------------------------------------------------------------------
-# 辅助
 # --------------------------------------------------------------------------
 
 
@@ -106,8 +99,6 @@ def _rows_out(db: Session, user: User, rows: list[StagedTransaction]) -> list[St
     for r in rows:
         item = StagedRowOut.model_validate(r)
         item.account_name = account_names.get(r.account_id or -1, "")
-        # 原始文本只在被排除的行上有用（界面用它显示「跳过了什么」）；
-        # 正常行带着它会让 400 行的批次响应膨胀到几百 KB
         if not r.excluded:
             item.raw_text = None
         if r.category_id and r.category_id in cats:
@@ -130,7 +121,6 @@ def _detail(db: Session, user: User, batch: ImportBatch, **extra) -> BatchDetail
 
 
 # --------------------------------------------------------------------------
-# 批次
 # --------------------------------------------------------------------------
 
 
@@ -176,7 +166,6 @@ def revert_batch(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> BatchActionOut:
-    """撤销已确认的批次：入账的交易进回收站，批次标为已撤销（可重新导入同一文件）。"""
     batch = _confirmed_batch(db, user, batch_id)
     n = history.revert(db, user.id, batch)
     db.commit()
@@ -189,7 +178,6 @@ def remove_batch_overlaps(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> BatchActionOut:
-    """只把这批里与其他记录重叠的交易移进回收站，另一份保留。"""
     batch = _confirmed_batch(db, user, batch_id)
     n = history.remove_overlaps(db, user.id, batch)
     db.commit()
@@ -202,7 +190,6 @@ def import_text(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> BatchDetail:
-    """把截图上的文字按行粘贴导入。多张截图可分多次贴入同一批次，批内自动合并重叠部分。"""
     account = _owned_account(db, user, payload.account_id)
 
     if payload.batch_id is not None:
@@ -226,14 +213,10 @@ def import_text(
     if payload.statement_month:
         anchor = dt.date.fromisoformat(f"{payload.statement_month}-01")
 
-    # 账户类型决定无法判定方向时的默认值：银行流水两个方向都常见，信用卡几乎全是支出
     default_direction = "expense"
     result = parse_lines(payload.text, statement_month=anchor, default_direction=default_direction)
     source.ocr_raw_json = None
 
-    # 追加到已有批次时，要把之前的行也纳入批内合并：简单起见，把本次结果
-    # 与已有行合在一起重新判重开销太大；这里只对新行做批内合并，
-    # 与已有行的重叠交由 L3 之前的「批内既有指纹」检查处理
     existing_fps = {
         fp
         for (fp,) in db.execute(
@@ -292,7 +275,6 @@ def discard_batch(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    """丢弃草稿批次。已确认的批次不可删（账目已入账，删了会失去来源追溯）。"""
     batch = _owned_batch(db, user, batch_id)
     if batch.status == BatchStatus.confirmed:
         raise HTTPException(status_code=409, detail="batch_already_confirmed")
@@ -301,7 +283,6 @@ def discard_batch(
 
 
 # --------------------------------------------------------------------------
-# 行
 # --------------------------------------------------------------------------
 
 
@@ -350,10 +331,8 @@ def update_row(
     if payload.clear_counterpart:
         row.counterpart_account_id = None
 
-    # 用户手动填了日期 / 金额，视为不再是「推断」
     if "date" in data and data["date"] is not None:
         row.date_inferred = False
-    # 被排除的行经用户编辑后视为恢复
     if row.excluded and row.exclude_reason in ("no_amount", "no_merchant", "orphan_amount") and row.amount and row.merchant_raw:
         row.excluded = False
         row.exclude_reason = None
@@ -377,11 +356,6 @@ def update_row(
 def _propagate_counterpart(
     db: Session, batch: ImportBatch, row: StagedTransaction
 ) -> list[StagedTransaction]:
-    """对方账户推给同批次里同商家的疑似转账行（含「不是转账」的清空）。
-
-    同一个商家串（「チャージ 三井住友銀行 *****12」「カード ｾﾌﾞﾝXX1234」）对方几乎总是同一个，
-    所以不像类别那样区分用户改过没有——直接同步。
-    """
     siblings = (
         db.query(StagedTransaction)
         .filter(
@@ -406,11 +380,7 @@ def _propagate_counterpart(
 def _propagate_category(
     db: Session, batch: ImportBatch, row: StagedTransaction
 ) -> list[StagedTransaction]:
-    """把用户刚给的类别推给同批次里的同商家 / 同品牌行。
-
-    只改「还没被用户亲手改过」的行（置信度 < 1.0），用户已经定的不动。
-    连带改的行置信度记 0.9、来源记 memory，界面上能看出是推的而不是用户点的。
-    """
+    """Apply the chosen category to same-merchant rows the user hasn't edited."""
     key_norm = row.merchant_norm
     key_brand = merchant_brand(row.merchant_raw)
     siblings = (
@@ -446,7 +416,6 @@ def expand_merged(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[StagedRowOut]:
-    """展开批内合并：把被合并进这一行的记录还原为独立行（需求书 F4.3，合并可逆）。"""
     batch = _owned_batch(db, user, batch_id)
     if batch.status != BatchStatus.draft:
         raise HTTPException(status_code=409, detail="batch_not_draft")
@@ -478,7 +447,6 @@ def restore_excluded(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StagedRowOut:
-    """把被排除的行（如汇总行、支付失败）拉回来。用户比规则更清楚。"""
     batch = _owned_batch(db, user, batch_id)
     row = _owned_row(db, user, batch, row_id)
     row.excluded = False
@@ -557,7 +525,6 @@ def batch_stats(
     def total(q) -> int:
         return int(q.with_entities(func.coalesce(func.sum(StagedTransaction.amount), 0)).scalar() or 0)
 
-    # 疑似转账（ATM / 还款 / 充值）确认后不计入收支，合计里单列，免得支出被虚高
     transfer = selected.filter(StagedTransaction.transfer_hint.is_(True))
     plain = selected.filter(StagedTransaction.transfer_hint.is_(False))
     return {
@@ -571,7 +538,6 @@ def batch_stats(
 
 
 # --------------------------------------------------------------------------
-# CSV 来源
 # --------------------------------------------------------------------------
 
 MAX_CSV_BYTES = 5 * 1024 * 1024
@@ -587,7 +553,6 @@ async def _read_upload(f: UploadFile) -> bytes:
 
 
 def _suggest_account(db: Session, user: User, profile_key: str | None, kind: str | None) -> int | None:
-    """按识别出的机构 / 账户类型推荐一个账户：institution 里含机构名优先，其次同类型。"""
     if profile_key is None:
         return None
     accounts = (
@@ -614,7 +579,6 @@ async def csv_preview(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CsvPreviewOut:
-    """识别编码与格式，返回表头、样例行与建议映射；不落库。"""
     out: list[CsvFilePreview] = []
     first_profile: str | None = None
     first_kind: str | None = None
@@ -656,11 +620,7 @@ async def import_csv(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> BatchDetail:
-    """导入一个或多个 CSV 到同一批次。
-
-    与截图不同，CSV 由银行生成，文件内的相同行几乎都是真实的多笔交易，
-    因此批内**不合并**，只标黄提示（merge_within_batch=False）。
-    """
+    """CSV rows are never merged within a batch: identical rows are real, separate transactions."""
     account = _owned_account(db, user, account_id)
 
     override: ColumnMapping | None = None
@@ -709,8 +669,7 @@ async def import_csv(
         target = account
         kind = det.profile.account_kind if det.profile and override is None else None
         if kind and kind != account.type.value:
-            # 银行口座明細选成了信用卡账户（或反过来）：判重按账户比对，放错账户后
-            # 每一行都「不重复」，还款也变成了消费。认得出格式就放进对的账户
+            # Dedup is per account, so move a recognised file to the matching account type.
             alt_id = _suggest_account(db, user, det.profile.key, kind)
             alt = db.get(Account, alt_id) if alt_id else None
             if alt is not None and alt.type.value == kind:

@@ -14,15 +14,6 @@ interface Props {
   readOnly?: boolean
 }
 
-/**
- * 待确认区（需求书 F3.4）。
- *
- * 每行可就地改类别 / 账户 / 勾选；重复行按 F4.2 着色并附理由；
- * 被排除的行折叠在底部并说明原因——不静默丢弃（附录 A.2.1）。
- *
- * 性能：几百行的批次是常态（一年的口座明細 400+ 行）。每行是独立的 memo 组件，
- * 下拉框点了才真正渲染（LazySelect），否则勾一个复选框整页都要重排。
- */
 export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
@@ -31,14 +22,12 @@ export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
   const [showExcluded, setShowExcluded] = useState(false)
   const [busyRow, setBusyRow] = useState<number | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  // 类目不够用时就地增删改查：pickFor 是「给这一行挑 / 新建类目」，manageOpen 是纯管理
   const [pickFor, setPickFor] = useState<StagedRow | null>(null)
   const [manageOpen, setManageOpen] = useState(false)
 
   const active = useMemo(() => rows.filter((r) => !r.excluded), [rows])
   const excluded = useMemo(() => rows.filter((r) => r.excluded), [rows])
 
-  // 类目选项按收支各准备一份；账户选项一份。都是稳定引用，行组件才能靠 memo 省掉重渲染
   const categoryOptions = useMemo(() => {
     const build = (type: 'expense' | 'income'): LazyOption[] =>
       categories
@@ -47,7 +36,6 @@ export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
           { value: c.id, label: c.name },
           ...c.children.map((ch) => ({ value: ch.id, label: `　${ch.name}` })),
         ])
-    // 末尾多一项「更多 / 新建…」，选中它打开类目管理弹窗
     const more: LazyOption = { value: MORE_CATEGORIES, label: t('staging.moreCategories') }
     return { expense: [...build('expense'), more], income: [...build('income'), more] }
   }, [categories, t])
@@ -56,7 +44,6 @@ export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
     [accounts],
   )
 
-  // 合计：疑似转账（ATM / 还款 / 充值）确认后不计收支，单列出来，免得支出被虚高
   const summary = useMemo(() => {
     let expense = 0
     let income = 0
@@ -74,8 +61,7 @@ export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
   }, [active])
   const selectedCount = active.filter((r) => r.is_selected).length
 
-  // 通过 ref 读最新的 rows，让 replace / patch 的引用保持稳定——
-  // 否则每改一行所有行的 onPatch 都变，memo 形同虚设
+  // Read latest rows via ref so callbacks stay stable for memo.
   const rowsRef = useRef(rows)
   rowsRef.current = rows
   const replace = useCallback(
@@ -115,7 +101,6 @@ export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
   const expand = useCallback(
     async (row: StagedRow) => {
       await api.expandMerged(batchId, row.id)
-      // 展开会让被合并的行从 excluded 变为 active，行序也要重排，整体刷新最省事
       const detail = await api.importBatch(batchId)
       onChange(detail.rows)
     },
@@ -243,11 +228,9 @@ export function StagingTable({ batchId, rows, onChange, readOnly }: Props) {
   )
 }
 
-// 类目下拉框末尾的特殊项
 const MORE_CATEGORIES = '__more'
 
 // --------------------------------------------------------------------------
-// 单行
 // --------------------------------------------------------------------------
 
 interface RowProps {
@@ -309,7 +292,6 @@ const StagingRow = memo(function StagingRow({
             type="text"
             value={row.merchant_raw}
             disabled={readOnly}
-            // 输入过程只改本地状态，失焦时才提交，避免每个字符都打一次请求
             onChange={(e) => onLocalEdit({ ...row, merchant_raw: e.target.value })}
             onBlur={(e) => void onPatch(row, { merchant_raw: e.target.value })}
           />

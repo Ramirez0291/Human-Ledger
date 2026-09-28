@@ -10,7 +10,6 @@ import {
 import { useLedger } from '../context/LedgerContext'
 
 interface Props {
-  /** 已有草稿批次时追加 */
   batchId: number | null
   onImported: (detail: BatchDetail) => void
 }
@@ -25,12 +24,6 @@ const ROLES: (keyof ColumnMapping)[] = [
   'memo',
 ]
 
-/**
- * CSV 导入（需求书 F9）。
- *
- * 选文件 → 预览（编码 / 格式识别 / 行数）→ 导入到待确认区。
- * 三井住友的两种格式自动识别；未识别的格式给出列映射编辑器。
- */
 export function CsvImportForm({ batchId, onImported }: Props) {
   const { t } = useTranslation()
   const { accounts } = useLedger()
@@ -43,7 +36,6 @@ export function CsvImportForm({ batchId, onImported }: Props) {
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // 未识别格式时需要映射编辑器；识别出格式时映射由后端决定
   const needsMapping = useMemo(
     () => !!preview && preview.files.some((f) => f.profile === null),
     [preview],
@@ -60,11 +52,6 @@ export function CsvImportForm({ batchId, onImported }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview])
 
-  /**
-   * 文件列表以下方的清单为准，而不是原生 file input：
-   * 再次选择是追加（同名文件替换），每一项可单独移除，选完立刻清空 input，
-   * 避免它显示的「N ファイル」与清单不一致。
-   */
   async function pick(list: FileList | null) {
     const added = list ? Array.from(list) : []
     if (inputRef.current) inputRef.current.value = ''
@@ -83,7 +70,6 @@ export function CsvImportForm({ batchId, onImported }: Props) {
     }
   }
 
-  // 移除只做本地过滤：预览结果按文件独立，不必再请求一次
   function removeFile(name: string) {
     const arr = files.filter((f) => f.name !== name)
     setFiles(arr)
@@ -186,7 +172,6 @@ export function CsvImportForm({ batchId, onImported }: Props) {
                   <div className="field" key={role}>
                     <label>{t(`csv.role.${role}`)}</label>
                     <select
-                      // ROLES 只含列索引类角色，但 ColumnMapping 也有布尔字段，类型上要收窄
                       value={typeof mapping[role] === 'number' ? (mapping[role] as number) : ''}
                       onChange={(e) =>
                         setMapping({

@@ -6,16 +6,10 @@ import { SUPPORTED_LOCALES } from '../i18n'
 import { Modal } from './Modal'
 
 interface Props {
-  /** 只显示这一类（待确认区按行的收支方向传）；不传则两类都显示 */
   type?: 'expense' | 'income'
-  /** 传了就变成「可选取」模式：点类目名把它交给调用方（待确认区里直接给行赋类别） */
   onPick?: (c: CategoryNode) => void
 }
 
-/**
- * 类目的增删改查。设置页与待确认区共用——用户在核对导入数据时
- * 发现类目不够用，不必离开当前页去设置里加。
- */
 export function CategoryManager({ type, onPick }: Props) {
   const { t } = useTranslation()
   const { categories, refreshCategories } = useLedger()
@@ -169,7 +163,6 @@ export function CategoryForm({
   existing: CategoryNode | null
   parent: CategoryNode | null
   defaultType?: 'expense' | 'income'
-  /** 新建时把创建出来的类目交回去，调用方可以立刻用上 */
   onSaved: (created: CategoryNode | null) => void
   onCancel: () => void
 }) {
@@ -249,7 +242,6 @@ export function CategoryForm({
         />
       </div>
 
-      {/* 每种语言各一个输入框：类目名是业务数据，必须按语言分别存 */}
       {SUPPORTED_LOCALES.map((loc) => (
         <div className="field" key={loc.code}>
           <label htmlFor={`cat-name-${loc.code}`}>{loc.nativeName}</label>

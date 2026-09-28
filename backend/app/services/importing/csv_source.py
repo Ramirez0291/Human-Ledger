@@ -1,20 +1,3 @@
-"""CSV 来源：银行 / 信用卡官网下载的明细 → RawTransaction 列表（需求书 F9）。
-
-两层机制：
-
-1. **已知格式（Profile）**：按首行特征自动识别，无需用户配置。
-   - smbc_card     三井住友カード / Olive クレジット 的月度明细
-   - smbc_bank     三井住友銀行 口座明細
-   - rakuten_card  楽天カード e-NAVI 月度明细（enaviYYYYMM(xxxx).csv）
-   - paypay        PayPay 取引履歴（Transactions_YYYYMMDD-YYYYMMDD.csv）
-2. **通用映射**：未识别的格式，由用户指定各列的角色（日期 / 商家 / 金额 …）。
-   映射方案可保存复用（按列标题签名自动匹配）。
-
-编码：日本金融机构的 CSV 绝大多数是 Shift_JIS（cp932）。依次尝试
-utf-8-sig → utf-8 → cp932 → euc_jp，UTF-8 严格解码在 Shift_JIS 字节上会很快失败，
-因此顺序安全。
-"""
-
 from __future__ import annotations
 
 import calendar
@@ -33,7 +16,6 @@ ENCODINGS = ("utf-8-sig", "utf-8", "cp932", "euc_jp")
 
 
 def decode(content: bytes) -> tuple[str, str]:
-    """返回 (文本, 编码名)。全部失败时以 cp932 宽松解码，不让一个坏字节挡住整个文件。"""
     for enc in ENCODINGS:
         try:
             return content.decode(enc), enc
@@ -43,7 +25,6 @@ def decode(content: bytes) -> tuple[str, str]:
 
 
 def read_rows(text: str) -> list[list[str]]:
-    """解析为二维表。自动识别逗号 / Tab 分隔；去掉每个单元格首尾空白。"""
     sample = text[:4096]
     delimiter = "\t" if sample.count("\t") > sample.count(",") else ","
     reader = csv.reader(io.StringIO(text), delimiter=delimiter)
@@ -60,17 +41,11 @@ def _nfkc(s: str) -> str:
 
 
 # --------------------------------------------------------------------------
-# 映射（通用格式）
 # --------------------------------------------------------------------------
 
 
 @dataclass
 class ColumnMapping:
-    """各列角色。索引从 0 起；None 表示该角色不存在。
-
-    金额有两种表达：单列带符号（amount），或出金 / 入金分列（withdrawal / deposit）。
-    """
-
     date: int
     merchant: int
     amount: int | None = None
@@ -78,7 +53,6 @@ class ColumnMapping:
     deposit: int | None = None
     balance: int | None = None
     memo: int | None = None
-    # 单列金额时：正数是支出还是收入。信用卡明细正数是支出；有些银行导出正数是入金
     positive_is_expense: bool = True
     has_header: bool = True
     skip_rows: int = 0
@@ -92,7 +66,6 @@ class ColumnMapping:
         return cls(**known)
 
 
-# 列标题关键词 → 角色，用于向用户建议映射
 _HEADER_HINTS: list[tuple[str, re.Pattern[str]]] = [
     ("date", re.compile(r"日付|年月日|取引日|利用日|ご利用日|date", re.I)),
     ("withdrawal", re.compile(r"出金|引出|お引出し|払戻|withdraw|debit", re.I)),
@@ -105,7 +78,6 @@ _HEADER_HINTS: list[tuple[str, re.Pattern[str]]] = [
 
 
 def suggest_mapping(header: list[str]) -> ColumnMapping | None:
-    """按列标题猜测映射。猜不出日期与商家列时返回 None。"""
     found: dict[str, int] = {}
     for idx, col in enumerate(header):
         name = _nfkc(col)
@@ -130,12 +102,10 @@ def suggest_mapping(header: list[str]) -> ColumnMapping | None:
 
 
 def header_signature(header: list[str]) -> str:
-    """列标题签名，用于匹配已保存的映射方案。"""
     return "|".join(_nfkc(h).strip().lower() for h in header)
 
 
 # --------------------------------------------------------------------------
-# 已知格式
 # --------------------------------------------------------------------------
 
 
@@ -153,7 +123,6 @@ class Detected:
     mapping: ColumnMapping | None
     header: list[str]
     data_start: int
-    # 从文件名 / 首行推断出的支払月（信用卡）
     statement_month: dt.date | None = None
     notes: list[str] = field(default_factory=list)
 
@@ -166,7 +135,6 @@ PAYPAY = Profile("paypay", "PayPay 取引履歴", "PayPay", "emoney")
 PROFILES: dict[str, Profile] = {p.key: p for p in (SMBC_CARD, SMBC_BANK, RAKUTEN_CARD, PAYPAY)}
 
 _SMBC_BANK_HEADER = ("年月日", "お引出し", "お預入れ", "お取り扱い内容", "残高")
-# 楽天カード：第 8 / 10 列标题含月份（「6月支払金額」），只比对前 7 列固定的部分
 _RAKUTEN_HEADER = ("利用日", "利用店名・商品名", "利用者", "支払方法", "利用金額", "手数料/利息", "支払総額")
 _PAYPAY_REQUIRED = ("取引日", "出金金額(円)", "入金金額(円)", "取引内容", "取引先", "取引方法")
 _CARD_MASK = re.compile(r"\d{4}-\d{2}\*{2}-\*{4}-\*{4}")
@@ -178,7 +146,6 @@ def detect(rows: list[list[str]], filename: str = "") -> Detected:
 
     first = [_nfkc(c) for c in rows[0]]
 
-    # ---- 三井住友銀行 口座明細：固定表头 ----
     if len(first) >= 5 and tuple(first[:5]) == _SMBC_BANK_HEADER:
         return Detected(
             SMBC_BANK,
@@ -187,7 +154,6 @@ def detect(rows: list[list[str]], filename: str = "") -> Detected:
             1,
         )
 
-    # ---- 三井住友カード：首行是「持卡人, 掩码卡号, 卡种」，无列标题 ----
     if len(first) >= 3 and _CARD_MASK.search(first[1]):
         statement = None
         m = re.search(r"(20\d{2})(0[1-9]|1[0-2])", filename or "")
@@ -202,7 +168,6 @@ def detect(rows: list[list[str]], filename: str = "") -> Detected:
             notes=[f"card:{first[2]}"],
         )
 
-    # ---- 楽天カード e-NAVI ----
     if len(first) >= 9 and tuple(first[:7]) == _RAKUTEN_HEADER:
         statement = None
         m = re.search(r"enavi(20\d{2})(0[1-9]|1[0-2])", filename or "")
@@ -216,7 +181,6 @@ def detect(rows: list[list[str]], filename: str = "") -> Detected:
             statement_month=statement,
         )
 
-    # ---- PayPay 取引履歴：按列名定位，列顺序变了也不怕 ----
     if all(col in first for col in _PAYPAY_REQUIRED):
         idx = {name: first.index(name) for name in first}
         return Detected(
@@ -232,7 +196,6 @@ def detect(rows: list[list[str]], filename: str = "") -> Detected:
             1,
         )
 
-    # ---- 通用：按表头猜 ----
     mapping = suggest_mapping(rows[0])
     if mapping is not None:
         return Detected(None, mapping, rows[0], 1)
@@ -240,7 +203,6 @@ def detect(rows: list[list[str]], filename: str = "") -> Detected:
 
 
 # --------------------------------------------------------------------------
-# 行 → RawTransaction
 # --------------------------------------------------------------------------
 
 
@@ -251,14 +213,6 @@ def _cell(row: list[str], idx: int | None) -> str:
 
 
 def _smbc_card_row(row: list[str], anchor: dt.date | None) -> RawTransaction | None:
-    """三井住友カード 明细行。
-
-    列：日付, 利用店名, 利用金額, 支払区分, 回数, 今回請求額, 備考
-    - 合计行：日期与店名为空，只有今回請求額 → 排除（汇总行）
-    - 分期：回数 > 1 时，利用金額是总额，今回請求額才是当期金额（附录 A.5.1 口径）
-    - 负数 + 備考「返品」→ 退款，计为收入
-    - 海外交易：備考形如「13827.00 JPY 1.0000 08 04」
-    """
     date_s, merchant, amount_s, _kind, times_s, this_month_s, memo = (
         _cell(row, i) for i in range(7)
     )
@@ -309,7 +263,6 @@ def _smbc_card_row(row: list[str], anchor: dt.date | None) -> RawTransaction | N
 
 
 def _rakuten_amount_columns(header: list[str]) -> tuple[int | None, int | None]:
-    """（N月支払金額 列号, 当月請求額 列号）。表头认不出时退回旧版固定列 7。"""
     names = [_nfkc(h) for h in header]
     pay = next((i for i, h in enumerate(names) if re.fullmatch(r"\d{1,2}月支払金額", h)), None)
     bill = next((i for i, h in enumerate(names) if h == "当月請求額"), None)
@@ -319,12 +272,6 @@ def _rakuten_amount_columns(header: list[str]) -> tuple[int | None, int | None]:
 
 
 def _installment_date(purchase: dt.date, statement: dt.date | None) -> dt.date:
-    """分期的每一期记在支払月，日取购买日（月底截断）。
-
-    「按当期金额记」：每期是那个月真实发生的支出。卡商明细里每期都带着最初的利用日，
-    原样入账的话 48 期全压在购买那天——那个月凭空多出几十万，之后的月份又看不到这笔开销；
-    而且每期金额相同时指纹也相同，第二期起会被判成重复。不知道支払月时只好保留原日期。
-    """
     if statement is None or (statement.year, statement.month) <= (purchase.year, purchase.month):
         return purchase
     last = calendar.monthrange(statement.year, statement.month)[1]
@@ -338,19 +285,6 @@ _RAKUTEN_TOTAL = re.compile(r"ご利用金額\s*[:：]\s*[\\¥]?\s*([\d,]+)")
 def _rakuten_card_rows(
     rows: list[list[str]], header: list[str], anchor: dt.date | None
 ) -> list[RawTransaction]:
-    """楽天カード e-NAVI 明细。
-
-    列：利用日, 利用店名・商品名, 利用者, 支払方法, 利用金額, 手数料/利息, 支払総額,
-        N月支払金額, [当月請求額,] M月繰越残高, 新規サイン
-    - 2026/06 以前的文件没有「当月請求額」一列（10 列），之后有（11 列），
-      所以当期金额按表头「N月支払金額」找列，不写死列号——写死第 9 列会在旧文件上
-      读到繰越残高（普通消费是 0，分期是剩余本金）
-    - 日期为空的行是上一笔的补充信息：ETC 的区间（「ｵｵｿﾞｳ ｵｵｿﾞｳ」）并入商家名，
-      让往返两程有不同指纹（附录 A.4.1）；「ご利用金額：\\41487」是分期总额
-    - 分期：支払方法「分割48回払い(14回目)」，当期金额取 N月支払金額；
-      日期挪到支払月（见 _installment_date），否则 48 期全堆在购买那天
-    - 退款：利用金額为负 → 收入
-    """
     pay_col, bill_col = _rakuten_amount_columns(header)
     out: list[RawTransaction] = []
     last: RawTransaction | None = None
@@ -366,7 +300,6 @@ def _rakuten_card_rows(
                 if total is not None and last.installment is not None:
                     last.installment["total_amount"] = abs(total)
             else:
-                # 多个连续空格压成一个；区间原文本身就是半角片假名
                 last.merchant_raw = f"{last.merchant_raw} {' '.join(merchant.split())}"
             last.raw_text += " | " + ",".join(row)
             continue
@@ -428,7 +361,6 @@ def _rakuten_card_rows(
     return out
 
 
-# PayPay 取引内容 → 商家名前缀。没列出的种类按普通收支处理，商家名取取引先。
 _PAYPAY_KIND_PREFIX = {
     "ポイント、残高の獲得": "ポイント獲得",
     "期間限定ポイントの期限切れ": "ポイント期限切れ",
@@ -439,16 +371,6 @@ _PAYPAY_BY_CARD = re.compile(r"クレジット|あと払い|カード")
 
 
 def _paypay_row(row: list[str], header: list[str]) -> RawTransaction | None:
-    """PayPay 取引履歴。
-
-    - 取引日含时间「2026/09/17 19:54:36」
-    - 出金 / 入金 分列，未用的一侧为「-」
-    - チャージ：从银行充值，取引先是「PayPay」、取引方法是银行名 → 商家名写成
-      「チャージ 三井住友銀行 *****12」，词典据此给出转账提示
-    - 用 PayPay 但实际走信用卡（取引方法含「クレジット」「あと払い」）的支付不动余额，
-      会出现在卡账单里，此处排除以免双计
-    - 取引方法（残高 / ポイント 组合）留在 raw_text 供核对
-    """
     col = {name: i for i, name in enumerate(_nfkc(h) for h in header)}
 
     def get(name: str) -> str:
@@ -539,7 +461,6 @@ def _mapped_row(row: list[str], m: ColumnMapping, anchor: dt.date | None) -> Raw
     balance = parse_amount(_cell(row, m.balance)) if m.balance is not None else None
     memo = _cell(row, m.memo) if m.memo is not None else ""
 
-    # 三井住友銀行导出的末尾有一行「2024/3/30,,0,"　",0」占位，金额 0 且无内容
     if (amount is None or amount == 0) and not merchant.strip():
         return RawTransaction(
             date=parsed.date if parsed else None, excluded=True, exclude_reason="no_amount",
@@ -573,7 +494,6 @@ def parse_csv(
     filename: str = "",
     mapping_override: ColumnMapping | None = None,
 ) -> tuple[ExtractResult, Detected, str]:
-    """整个文件 → ExtractResult。返回 (结果, 识别信息, 编码)。"""
     text, encoding = decode(content)
     rows = read_rows(text)
     det = detect(rows, filename)
@@ -601,7 +521,6 @@ def parse_csv(
 
     detected_balance = None
     if det.profile is SMBC_BANK:
-        # 口座明細按日期降序，首行残高即当前余额
         for t in out:
             if not t.excluded and t.balance_after is not None:
                 detected_balance = t.balance_after

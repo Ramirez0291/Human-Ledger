@@ -8,13 +8,11 @@ interface Props {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
-  /** 宽表单（如交易录入）用 wide */
   size?: 'normal' | 'wide'
 }
 
 export function Modal({ open, title, onClose, children, footer, size = 'normal' }: Props) {
   const { t } = useTranslation()
-  // Esc 关闭；打开时锁定背景滚动，否则手机上背景会跟着滑动
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {

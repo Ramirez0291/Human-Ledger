@@ -3,12 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { ApiError, api, type MatchType, type Rule } from '../api/client'
 import { useLedger } from '../context/LedgerContext'
 
-/**
- * 用户分类规则（判别链第 1 层）。
- *
- * 典型用途：SPOTIFY 每笔带不同交易号，商家记忆学不会；一条「包含 spotify → 订阅」
- * 就解决了。规则与规范化后的商家名比对，因此大小写、全半角、空格都无所谓。
- */
 export function RulesPanel() {
   const { t } = useTranslation()
   const { categories, accounts } = useLedger()

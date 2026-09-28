@@ -1,16 +1,3 @@
-"""日本金融 App 与 CSV 中出现的日期格式解析（需求书 F3.3 / 附录 A.3.2）。
-
-支持：
-    2026/09/07  2026-09-07  2026.09.07  2026年9月7日  20260907
-    26.09.02    26/09/02                            （两位年份，Olive / 三井住友銀行）
-    令和8年9月7日  R8.9.7                              （和历）
-    9/7  09/07  9月7日                                 （无年份，J-WEST）
-    以上均可带星期「(月)」与时刻「21時56分」「21:56」后缀
-    全角数字「２０２６／０９／０７」先经 NFKC 归一
-
-无年份日期的年份推断是最容易出错的地方，规则见 infer_year()。
-"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -18,11 +5,9 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-# 和历元年对应的西历年份 − 1（令和元年 = 2019）
 _ERA_BASE = {"令和": 2018, "R": 2018, "平成": 1988, "H": 1988, "昭和": 1925, "S": 1925}
 
 _WEEKDAY = r"(?:\s*[(（][月火水木金土日][)）])?"
-# 时刻：21時56分 / 21:56 / 21時
 _TIME = r"(?:\s*(?P<hour>\d{1,2})\s*[時:]\s*(?P<minute>\d{1,2})?\s*分?)?"
 
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
@@ -58,27 +43,16 @@ _YEAR_MONTH = re.compile(r"(?<!\d)(?P<y>\d{4})\s*[/\-.年]\s*(?P<m>\d{1,2})\s*�
 class ParsedDate:
     date: dt.date
     time: dt.time | None
-    # 年份来自推断而非原文（附录 A.3.2），UI 需标注
     year_inferred: bool
-    # 匹配到的原文片段，用于从行文本中剔除
     span: tuple[int, int]
     kind: str
 
 
 def normalize_text(s: str) -> str:
-    """NFKC：全角数字/符号 → 半角，便于统一匹配。"""
     return unicodedata.normalize("NFKC", s)
 
 
 def infer_year(month: int, day: int, anchor: dt.date | None, today: dt.date | None = None) -> int:
-    """为无年份日期推断年份（附录 A.3.2）。
-
-    anchor 为「支払月」等锚点（如信用卡明细页的「8月」Tab）。信用卡消费日通常
-    早于支払月 0–2 个月，因此：消费月 ≤ 锚点月 → 同年；消费月 > 锚点月 → 上一年
-    （覆盖 1 月支払 ↔ 11/12 月消费的跨年情形）。
-
-    无锚点时取不晚于今天的最近一个同月日。
-    """
     if anchor is not None:
         return anchor.year if month <= anchor.month else anchor.year - 1
 
@@ -112,10 +86,6 @@ def parse_date(
     anchor: dt.date | None = None,
     today: dt.date | None = None,
 ) -> ParsedDate | None:
-    """从一段文本中找出第一个日期。找不到返回 None。
-
-    anchor：年份推断锚点，通常来自页面上的年月标题或支払月 Tab。
-    """
     s = normalize_text(text)
 
     for kind, pat in _PATTERNS:
@@ -154,11 +124,6 @@ def parse_date(
 
 
 def parse_year_month(text: str) -> dt.date | None:
-    """识别「2026年10月」「2026.09」「2026/09」这类年月标题，返回该月 1 日。
-
-    用作后续无年份 / 两位年份日期的推断锚点。整行只含年月时才算标题，
-    避免把「2026/09/07」这种完整日期误认为标题。
-    """
     s = normalize_text(text).strip()
     m = _YEAR_MONTH.fullmatch(s) or _YEAR_MONTH.fullmatch(s.rstrip("分"))
     if not m:
@@ -168,7 +133,6 @@ def parse_year_month(text: str) -> dt.date | None:
 
 
 def parse_month_only(text: str) -> int | None:
-    """识别「8月」这类仅有月份的支払月标签，返回月份数。"""
     s = normalize_text(text).strip()
     m = re.fullmatch(r"(?P<m>\d{1,2})月(?:分|支払分|お支払い分)?", s)
     if not m:

@@ -23,6 +23,4 @@ api_router.include_router(imports.router)
 api_router.include_router(rules.router)
 api_router.include_router(reports.router)
 
-# 后续里程碑挂载点：
-#   M2  imports 增加截图上传（OCR）与 CSV 来源
 #   M4  budgets / recurring

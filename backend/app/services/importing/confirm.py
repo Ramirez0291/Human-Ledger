@@ -1,16 +1,3 @@
-"""确认入账：待确认区 → transactions。
-
-只写入「已勾选且未排除」的行。每行：
-  - 普通收支          → 一条 Transaction
-  - 指定了对方账户    → 一对转账（transfer_out / transfer_in），不计入收支
-  - 有类别            → 回写商家记忆（F5.3）
-  - 有 balance_after  → 最新一行的残高自动生成对账快照，闭环「导入 → 对账」
-
-判重在暂存时已经做过，但两个草稿同时开着时彼此看不见：同一份明细放进两个批次，
-先确认的那个入账后，后确认的那个照样再写一遍。所以确认时再查一次——只拦
-暂存时没查出重复、现在却有了的行；暂存时就标了重复、用户仍然勾选的行是用户的决定，不动。
-"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -64,7 +51,6 @@ def _new_txn(row: StagedTransaction, **overrides) -> Transaction:
 
 
 def _booked(db: Session, batch: ImportBatch, *conds) -> bool:
-    """账本里（别的批次或手动记账）是否已经有满足条件的记录。"""
     q = (
         select(Transaction.id)
         .where(
@@ -79,17 +65,11 @@ def _booked(db: Session, batch: ImportBatch, *conds) -> bool:
 
 
 def _is_late_duplicate(db: Session, batch: ImportBatch, row: StagedTransaction, fingerprint: str) -> bool:
-    """暂存时没查出重复、现在账本里却有了——是暂存之后才入账的。
-
-    暂存时已判为重复 / 可能重复、用户仍然勾选的行是用户的决定，不在这里拦。
-    （不按时间戳比：Windows 时钟粒度约 15ms，前后脚的两次操作会落在同一刻。）
-    """
     if row.dup_status != DupStatus.none:
         return False
     if _booked(db, batch, Transaction.account_id == row.account_id, Transaction.fingerprint == fingerprint):
         return True
     if row.counterpart_account_id or row.transfer_hint:
-        # 转账的另一侧（L3c）：同账户、同额、同向的转账腿，日期差 ≤ 1 天
         leg = Direction.transfer_out if row.direction == Direction.expense else Direction.transfer_in
         return _booked(
             db,
@@ -103,7 +83,6 @@ def _is_late_duplicate(db: Session, batch: ImportBatch, row: StagedTransaction, 
 
 
 def confirm_batch(db: Session, user_id: int, batch: ImportBatch, source: TxnSource) -> ConfirmResult:
-    """把批次内勾选的行写入账本。调用方负责 commit。"""
     result = ConfirmResult()
 
     rows = (
@@ -143,7 +122,6 @@ def confirm_batch(db: Session, user_id: int, batch: ImportBatch, source: TxnSour
             continue
 
         if counterpart is not None and counterpart.id != account.id:
-            # 转账：钱离开本账户（expense）→ 本账户 out、对方 in；反之亦然
             group = str(uuid.uuid4())
             outgoing = row.direction == Direction.expense
             src, dst = (account, counterpart) if outgoing else (counterpart, account)
@@ -178,14 +156,12 @@ def confirm_batch(db: Session, user_id: int, batch: ImportBatch, source: TxnSour
                 learn(db, user_id, row.merchant_raw, row.category_id)
             result.imported += 1
 
-        # 记下日期最新的一条残高，供对账
         if row.balance_after is not None:
             if latest_balance is None or (row.date, row.id) > (latest_balance[0].date, latest_balance[0].id):
                 latest_balance = (row, row.balance_after)
 
     db.flush()
 
-    # ---- 残高自动对账（附录 A.3.6）----
     if latest_balance is not None:
         row, balance = latest_balance
         account = accounts[row.account_id]

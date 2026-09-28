@@ -1,5 +1,3 @@
-"""交易录入、查询、编辑与转账（需求书 F2）。"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -32,7 +30,6 @@ TRANSFER_DIRECTIONS = (Direction.transfer_in, Direction.transfer_out)
 
 
 # --------------------------------------------------------------------------
-# 辅助
 # --------------------------------------------------------------------------
 
 
@@ -52,7 +49,6 @@ def _check_category(db: Session, user: User, category_id: int | None) -> None:
 
 
 def _apply_derived(txn: Transaction) -> None:
-    """重算规范化商家名与指纹。任何会影响它们的写入之后都必须调用。"""
     txn.merchant_norm = normalize_merchant(txn.merchant_raw)
     txn.fingerprint = make_fingerprint(
         txn.date, txn.direction.value if txn.direction else "", txn.amount, txn.merchant_norm
@@ -60,7 +56,6 @@ def _apply_derived(txn: Transaction) -> None:
 
 
 def _decorate(db: Session, user: User, rows: list[Transaction]) -> list[TransactionOut]:
-    """补上账户名与类目名（按用户当前语言）。"""
     if not rows:
         return []
 
@@ -96,7 +91,6 @@ def _decorate(db: Session, user: User, rows: list[Transaction]) -> list[Transact
 
 
 # --------------------------------------------------------------------------
-# 查询
 # --------------------------------------------------------------------------
 
 
@@ -128,7 +122,6 @@ def list_transactions(
     if account_id:
         query = query.filter(Transaction.account_id == account_id)
     if category_id:
-        # 选大分類时包含其子类，与报表口径一致；选子类只看子类
         query = query.filter(
             Transaction.category_id.in_(category_scope(db, user.id, category_id))
         )
@@ -142,7 +135,6 @@ def list_transactions(
 
     total = query.with_entities(func.count(Transaction.id)).scalar() or 0
 
-    # 合计只统计收支，转账两条腿排除在外
     sums = dict(
         query.with_entities(Transaction.direction, func.coalesce(func.sum(Transaction.amount), 0))
         .filter(Transaction.direction.in_([Direction.expense, Direction.income]))
@@ -182,13 +174,11 @@ def category_suggestion(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> CategorySuggestion:
-    """按商家名预测类别（判别链第 2 层：商家记忆）。"""
     category_id, confidence = suggest_category(db, user.id, merchant)
     return CategorySuggestion(category_id=category_id, confidence=confidence)
 
 
 # --------------------------------------------------------------------------
-# 写入
 # --------------------------------------------------------------------------
 
 
@@ -205,7 +195,6 @@ def create_transaction(
     _apply_derived(txn)
     db.add(txn)
 
-    # 手动录入即视为一次明确的分类意图，回写商家记忆
     learn(db, user.id, txn.merchant_raw, txn.category_id)
 
     db.commit()
@@ -219,14 +208,7 @@ def create_transfer(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[TransactionOut]:
-    """账户间转账，生成成对的两条记录。
-
-    典型场景：ATM 取现（银行→现金）、PayPay 充值（银行→PayPay）、
-    信用卡还款（银行→信用卡）、交通 IC 充值（信用卡→Suica）。
-
-    这两条记录不计入收支统计。若把取现记成支出，从银行取 3 万现金会先算
-    一次支出，花掉时再算一次，同一笔钱被统计两次。
-    """
+    """Creates a transfer as two linked rows; neither counts as income or expense."""
     if payload.from_account_id == payload.to_account_id:
         raise HTTPException(status_code=400, detail="same_account")
 
@@ -265,7 +247,6 @@ def create_transfer(
 
     created = [out_leg, in_leg]
 
-    # 手续费是真实支出（如海外汇款手续费），单独记一笔，不混进转账金额
     if payload.fee > 0:
         fee_txn = Transaction(
             user_id=user.id,
@@ -296,12 +277,6 @@ def convert_to_transfer(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[TransactionOut]:
-    """把一笔收支改记为转账（补上对方账户的另一条腿）。
-
-    典型：银行明细里的「ﾐﾂｲｽﾐﾄﾓｶ-ﾄﾞ」被记成了支出。卡上的每笔消费已经各记一次，
-    还款再算支出就是双计——那个月的「最大支出」永远是信用卡还款。
-    同理：ATM 取现、转入证券账户、给电子钱包充值。
-    """
     txn = db.get(Transaction, txn_id)
     if txn is None or txn.user_id != user.id or txn.deleted_at is not None:
         raise HTTPException(status_code=404, detail="transaction_not_found")
@@ -365,7 +340,6 @@ def update_transaction(
     if "direction" in data and data["direction"] in TRANSFER_DIRECTIONS:
         raise HTTPException(status_code=400, detail="cannot_set_transfer_direction")
     if txn.transfer_group_id and ("amount" in data or "direction" in data):
-        # 只改一条腿会让两个账户的余额同时错，且无法自动发现
         raise HTTPException(status_code=400, detail="edit_transfer_via_delete_recreate")
 
     if "account_id" in data:
@@ -377,7 +351,6 @@ def update_transaction(
         setattr(txn, key, value)
     _apply_derived(txn)
 
-    # 改分类是最强的学习信号
     if "category_id" in data or "merchant_raw" in data:
         learn(db, user.id, txn.merchant_raw, txn.category_id)
 
@@ -392,11 +365,7 @@ def delete_transaction(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    """软删除，保留在回收站。
-
-    属于转账的记录会**连同同组的另一条腿一起删除**——只删一条会让转出、
-    转入两个账户的余额同时出错，而且不会有任何报错提示。
-    """
+    """Soft delete. Deleting one leg of a transfer deletes both."""
     txn = db.get(Transaction, txn_id)
     if txn is None or txn.user_id != user.id or txn.deleted_at is not None:
         raise HTTPException(status_code=404, detail="transaction_not_found")

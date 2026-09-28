@@ -1,9 +1,3 @@
-"""认证：首次初始化、登录、登出、当前状态（需求书 F11）。
-
-首次访问引导设置第一个用户；之后可自助注册更多用户（ALLOW_REGISTRATION 控制），
-每个用户有独立的账户、类目、交易——所有业务表按 user_id 隔离。
-"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -55,7 +49,6 @@ def get_status(
 
 @router.post("/setup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def setup(payload: SetupRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
-    """首次初始化：创建唯一用户并播种预置类目。"""
     if db.query(User).first() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="already_initialized")
 
@@ -66,7 +59,6 @@ def setup(payload: SetupRequest, response: Response, db: Session = Depends(get_d
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: SetupRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
-    """自助注册：新用户拿到一套自己的预置类目，登录态直接建立。"""
     if not settings.allow_registration:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="registration_disabled")
     if db.query(User).filter(User.username == payload.username.strip()).first() is not None:
@@ -95,7 +87,7 @@ def _create_user(db: Session, payload: SetupRequest) -> User:
 @router.post("/login", response_model=UserOut)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
     user = db.query(User).filter(User.username == payload.username.strip()).first()
-    # 用户名不存在与密码错误返回同一提示，避免暴露用户名是否存在
+    # Same message for unknown user and wrong password.
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
@@ -127,7 +119,6 @@ def update_locale(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> UserOut:
-    """持久化语言偏好，使其跨设备、跨会话保持一致。"""
     if payload.locale not in SUPPORTED_LOCALES:
         raise HTTPException(status_code=400, detail="unsupported_locale")
     user.locale = payload.locale

@@ -1,5 +1,3 @@
-"""账户管理与余额对账（需求书 F1）。"""
-
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -110,12 +108,7 @@ def delete_account(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    """删除账户。
-
-    仍有交易的账户不允许删除——直接删会让历史账目失去归属，或因外键约束
-    静默失败。此时应引导用户改为「归档」（is_archived），账目保留但不再出现
-    在录入选项里。
-    """
+    """Accounts with transactions cannot be deleted; archive them instead."""
     account = _get_owned(db, user, account_id)
     count = (
         db.query(func.count(Transaction.id))
@@ -137,7 +130,6 @@ def reconcile_account(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ReconcileOut:
-    """录入实际余额并与系统计算值比对，差额非 0 即提示可能漏记。"""
     account = _get_owned(db, user, account_id)
     snapshot = reconcile(
         db,

@@ -1,11 +1,9 @@
 .git
 .gitignore
 data
-docs
 *.md
 !README.md
 
-# 依赖与构建产物在镜像内重新生成
 **/node_modules
 **/dist
 **/.venv

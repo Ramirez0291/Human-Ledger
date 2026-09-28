@@ -16,12 +16,6 @@ import { StagingTable } from '../components/StagingTable'
 import { useLedger } from '../context/LedgerContext'
 import { currentYearMonth, formatJPY } from '../lib/format'
 
-/**
- * 导入页（需求书 F3）。
- *
- * 当前来源是「文本粘贴」：把截图上的文字按行贴进来。这等价于本地 OCR 的输出，
- * OCR 接上后只是省掉手动转录这一步，之后的判重、分类、确认完全相同。
- */
 export function ImportPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
@@ -38,7 +32,6 @@ export function ImportPage() {
   const [error, setError] = useState('')
 
   const [detail, setDetail] = useState<BatchDetail | null>(null)
-  // 引用稳定的 onChange：待确认区几百行靠 memo 省重渲染，回调一变就全白费
   const onRowsChange = useCallback(
     (rows: StagedRow[]) => setDetail((d) => (d ? { ...d, rows } : d)),
     [],
@@ -59,7 +52,6 @@ export function ImportPage() {
     void loadDrafts()
   }, [loadDrafts])
 
-  // 通过 /import/:batchId 打开已有批次
   useEffect(() => {
     if (!params.batchId) return
     const id = Number(params.batchId)
@@ -76,7 +68,6 @@ export function ImportPage() {
         account_id: accountId,
         text,
         statement_month: useStatementMonth && statementMonth ? statementMonth : null,
-        // 已有草稿则追加，多张截图合并判重
         batch_id: detail?.batch.status === 'draft' ? detail.batch.id : null,
       })
       setDetail(d)

@@ -22,7 +22,6 @@ export function AppShell({ onLogout, onPersistLocale }: Props) {
 
   return (
     <div className="app-shell">
-      {/* 页头与导航合为一块吸顶玻璃，见 styles.css .app-top */}
       <div className="app-top">
         <header className="app-header">
           <span className="brand">

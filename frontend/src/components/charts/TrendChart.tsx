@@ -8,7 +8,6 @@ import { useWidth } from './useWidth'
 interface Props {
   months: TrendMonth[]
   locale: string
-  /** 高亮的月份（当前查看的月） */
   activeMonth?: string
   onPickMonth?: (ym: string) => void
 }
@@ -17,26 +16,14 @@ type Series = 'income' | 'expense' | 'excluded' | 'net' | 'avg'
 
 const HEIGHT = 260
 const PAD = { top: 16, right: 8, bottom: 28, left: 48 }
-const GAP = 2 // 相邻柱之间留 2px 底色缝
+const GAP = 2
 
-/**
- * 近 N 个月收支柱状图 + 结余折线 + 月均支出参考线。
- *
- * 三条序列共用一根日元轴，不做双轴。结余可能为负，所以零线不一定在底部。
- * 被除外的支出（大额 / 意外开支）叠在支出柱顶上，用斜纹画，默认显示但不计入月均。
- *
- * 交互：
- * - 图例可点，开关各序列；纵轴随可见序列重算，关掉收入后支出的起伏才看得清
- * - 指针 / 手指在图上移动即出十字线与数值；点一下切换到该月
- * - 图表可聚焦，←→ 移动、Enter 选中，Esc 退出
- */
 export function TrendChart({ months, locale, activeMonth, onPickMonth }: Props) {
   const { t } = useTranslation()
   const [ref, width] = useWidth<HTMLDivElement>()
   const [hover, setHover] = useState<number | null>(null)
   const [hidden, setHidden] = useState<Set<Series>>(new Set())
   const hatchId = `hatch-${useId().replace(/:/g, '')}`
-  // 触屏上第一次点只看数值，再点同一列才切换月份；鼠标直接切换
   const tap = useRef<{ type: string; prev: number | null }>({ type: 'mouse', prev: null })
 
   const on = (s: Series) => !hidden.has(s)
@@ -48,7 +35,6 @@ export function TrendChart({ months, locale, activeMonth, onPickMonth }: Props) 
       return next
     })
 
-  // 月均只统计有记录的月份：空月（还没开始记账）拉低均值没有意义
   const average = useMemo(() => {
     const active = months.filter((m) => m.expense > 0 || m.income > 0)
     return active.length ? Math.round(active.reduce((n, m) => n + m.expense, 0) / active.length) : 0
@@ -81,7 +67,6 @@ export function TrendChart({ months, locale, activeMonth, onPickMonth }: Props) 
   const xCenter = (i: number) => PAD.left + slot * i + slot / 2
   const zero = y(0)
   const hovered = hover !== null ? months[hover] : null
-  // 窄屏上月份标签隔一个显示
   const labelEvery = slot < 34 ? 2 : 1
 
   function onKey(e: React.KeyboardEvent) {
@@ -218,7 +203,6 @@ export function TrendChart({ months, locale, activeMonth, onPickMonth }: Props) 
             <line x1={xCenter(hover)} x2={xCenter(hover)} y1={PAD.top} y2={HEIGHT - PAD.bottom} className="chart-crosshair" />
           )}
 
-          {/* 最上层透明覆盖：统一处理鼠标与触屏，命中区是整列而不是细细的柱子 */}
           <rect
             x={PAD.left}
             y={PAD.top}
@@ -284,6 +268,5 @@ function monthLabel(ym: string, locale: string, long = false): string {
   const [y, m] = ym.split('-').map(Number)
   const d = new Date(y, m - 1, 1)
   if (long) return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short' }).format(d)
-  // 一月多带上年份，其他月份只给月，横轴才放得下
   return new Intl.DateTimeFormat(locale, m === 1 ? { year: '2-digit', month: 'short' } : { month: 'short' }).format(d)
 }

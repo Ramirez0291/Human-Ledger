@@ -4,8 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class SetupRequest(BaseModel):
-    """首次启动时创建唯一用户。"""
-
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=8, max_length=256)
     locale: str = Field(default="zh-CN", max_length=16)
@@ -29,11 +27,8 @@ class LocaleUpdate(BaseModel):
 
 
 class StatusOut(BaseModel):
-    """前端启动时据此决定进入 初始化 / 登录 / 主界面。"""
-
     needs_setup: bool
     authenticated: bool
-    # 是否显示「注册」入口
     allow_registration: bool = True
     user: UserOut | None = None
     default_locale: str

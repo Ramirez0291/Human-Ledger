@@ -11,13 +11,6 @@ interface Props {
   onCancel: () => void
 }
 
-/**
- * 账户间转账。
- *
- * 这是一个独立表单而非普通记账的一个方向选项，因为转账在数据上是**成对**的
- * 两条记录，且不计入收支统计。典型用途：ATM 取现、PayPay 充值、
- * 信用卡还款、交通 IC 充值。
- */
 export function TransferForm({ onSaved, onCancel }: Props) {
   const { t } = useTranslation()
   const { accounts, categories } = useLedger()

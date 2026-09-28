@@ -1,9 +1,4 @@
-"""数据库会话。
-
-SQLite 需要两处显式设置，否则行为不符合预期：
-- foreign_keys=ON：SQLite 默认不强制外键约束
-- journal_mode=WAL：允许读写并发，避免导入截图时阻塞界面
-"""
+"""SQLite: enable foreign keys and WAL."""
 
 from __future__ import annotations
 

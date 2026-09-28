@@ -10,20 +10,13 @@ interface Props {
   options: LazyOption[]
   onChange: (value: string) => void
   disabled?: boolean
-  /** 没有选中值时显示的文字 */
   placeholder: string
   className?: string
   title?: string
 }
 
-/**
- * 点了才变成 <select> 的下拉框。
- *
- * 待确认区一个批次几百行、每行三个下拉框，每个又带几十个 <option>——
- * 全部真实渲染会有两三万个 DOM 节点，勾一个复选框都卡。
- * 平时只渲染一个按钮显示当前值，点击时才换成原生 select 并自动展开；
- * 选完或失焦立刻换回按钮。
- */
+// Renders a button until clicked, then a native <select>.
+// Keeps large staging tables from creating tens of thousands of DOM nodes.
 export function LazySelect({ value, options, onChange, disabled, placeholder, className, title }: Props) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLSelectElement>(null)
@@ -33,11 +26,9 @@ export function LazySelect({ value, options, onChange, disabled, placeholder, cl
     const el = ref.current
     if (!el) return
     el.focus()
-    // 尽量直接弹出选项列表；不支持 showPicker 的浏览器需要用户再点一下
     try {
       el.showPicker?.()
     } catch {
-      /* 非用户手势触发时会抛，忽略 */
     }
   }, [open])
 

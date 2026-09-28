@@ -1,13 +1,11 @@
-"""从「设置 → 备份」下载的 zip 恢复数据库与上传文件。
+"""Restore a backup zip from Settings -> Backup.
 
-**必须先停掉服务**再运行：SQLite 文件被替换时若仍有连接打开，WAL 里的旧内容
-会在下次 checkpoint 时覆盖刚恢复的数据。
+Stop the server first.
 
-用法：
-    backend/.venv/Scripts/python.exe scripts/restore_backup.py <备份 zip>
+Usage:
+    python scripts/restore_backup.py <backup.zip>
 
-现有的 ledger.db 与 uploads/ 会先改名为 *.bak-<时间戳> 留在原目录，
-确认恢复无误后可手动删除。
+Existing data is kept as *.bak-<timestamp>.
 """
 
 from __future__ import annotations
@@ -29,10 +27,10 @@ def main(argv: list[str]) -> int:
         return 2
     archive = Path(argv[1])
     if not archive.is_file():
-        print(f"找不到文件：{archive}")
+        print(f"File not found: {archive}")
         return 2
     if not settings.resolved_database_url.startswith("sqlite"):
-        print("只支持 SQLite 部署。")
+        print("Only SQLite deployments are supported.")
         return 2
 
     db_path = Path(settings.resolved_database_url.removeprefix("sqlite:///"))
@@ -42,18 +40,17 @@ def main(argv: list[str]) -> int:
     with zipfile.ZipFile(archive) as zf:
         names = zf.namelist()
         if "ledger.db" not in names:
-            print("这不是人类账本的备份包（缺少 ledger.db）。")
+            print("Not a Human Ledger backup (ledger.db missing).")
             return 2
-        # zip 内路径只允许 ledger.db / uploads/... / MANIFEST.txt，防止路径穿越
+        # Only allow known paths (no path traversal).
         for n in names:
             if n not in ("ledger.db", "MANIFEST.txt") and not n.startswith("uploads/"):
-                print(f"备份包含意外的路径：{n}")
+                print(f"Unexpected path in backup: {n}")
                 return 2
             if ".." in Path(n).parts:
-                print(f"备份包含非法路径：{n}")
+                print(f"Illegal path in backup: {n}")
                 return 2
 
-        # 先把现有数据挪开（含 WAL / SHM 伴随文件），失败也不会丢
         for suffix in ("", "-wal", "-shm"):
             p = db_path.with_name(db_path.name + suffix)
             if p.exists():
@@ -71,9 +68,9 @@ def main(argv: list[str]) -> int:
                 with zf.open(n) as src, open(target, "wb") as dst:
                     shutil.copyfileobj(src, dst)
 
-    print(f"已恢复：{db_path}")
-    print(f"旧数据保留为 *.bak-{stamp}，确认无误后可删除。")
-    print("启动前请运行 python -m alembic upgrade head，以防备份来自旧版本。")
+    print(f"Restored: {db_path}")
+    print(f"Previous data kept as *.bak-{stamp}.")
+    print("Run `python -m alembic upgrade head` before starting (the Docker image does this automatically).")
     return 0
 
 

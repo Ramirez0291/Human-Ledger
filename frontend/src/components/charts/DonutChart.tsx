@@ -6,22 +6,16 @@ import { formatJPY, formatPercent } from '../../lib/format'
 interface Props {
   data: CategoryBreakdown
   locale: string
-  /** 点击某个大分類时下钻 */
   onDrill?: (group: CategoryGroup) => void
-  /** 传了就在图例每行放一个「除外」按钮：把整个类目拿出分析口径 */
   onExclude?: (group: CategoryGroup) => void
 }
 
-/** 环形图最多放这么多片，之后的合并成「其他」；再多颜色就分不开了 */
 const MAX_SLICES = 7
 const SIZE = 200
 const THICK = 24
 const HOVER_GROW = 6
-// 外缘（含悬停加粗）必须留在画布里：之前 R=90 + 半个线宽 13 = 103 > 100，
-// 环的上下左右四边被 SVG 边界裁平，看上去不圆
 const R = SIZE / 2 - (THICK + HOVER_GROW) / 2 - 2
 
-// 类目自己没配色时的备用色，按固定顺序分配、不循环
 const FALLBACK = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7']
 
 export interface Slice {
@@ -67,12 +61,6 @@ export function buildSlices(data: CategoryBreakdown): Slice[] {
   return slices
 }
 
-/**
- * 分类占比环形图。
- *
- * 图例是主要的阅读入口（带金额与百分比），环只负责给「大概比例」的直觉；
- * 所以图例每行都可点，点了下钻到子类。
- */
 export function DonutChart({ data, locale, onDrill, onExclude }: Props) {
   const { t } = useTranslation()
   const [hover, setHover] = useState<string | null>(null)
@@ -111,7 +99,6 @@ export function DonutChart({ data, locale, onDrill, onExclude }: Props) {
                 fill="none"
                 stroke={s.color}
                 strokeWidth={hover === s.key ? THICK + HOVER_GROW : THICK}
-                // 每片之间留 2px 底色缝，相邻同色系也分得开
                 strokeDasharray={`${Math.max(0, len - 2)} ${circumference - Math.max(0, len - 2)}`}
                 strokeDashoffset={-offset - 1}
                 className="donut-slice"

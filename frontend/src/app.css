@@ -1,11 +1,5 @@
-/* ==========================================================================
-   M1：导航、页面头、列表、表单、弹窗
-   设计令牌与基础样式在 styles.css，此处只放组件与页面级样式。
-   ========================================================================== */
 
-/* ---- 导航 ---- */
 
-/* 导航条本身在 .app-top 里，吸顶与玻璃由父级负责 */
 .app-nav {
   display: flex;
   gap: 4px;
@@ -64,8 +58,6 @@
   }
 }
 
-/* ---- 页面头 ---- */
-
 .page-head {
   display: flex;
   flex-wrap: wrap;
@@ -96,7 +88,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 图标按钮：正方形命中区 */
 .btn-icon {
   width: 36px;
   padding: 0;
@@ -118,8 +109,6 @@
   margin-top: 16px;
   text-decoration: none;
 }
-
-/* ---- 统计卡 ---- */
 
 .stat-row {
   display: grid;
@@ -144,7 +133,6 @@
   transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
-/* 角落一团按语义着色的光，像玻璃被灯从后面照亮 */
 .stat::before {
   content: '';
   position: absolute;
@@ -193,8 +181,6 @@
 .income {
   color: var(--ok);
 }
-
-/* ---- 账户与提醒列表 ---- */
 
 .account-list,
 .account-manage-list,
@@ -282,8 +268,6 @@
   color: var(--warn);
 }
 
-/* ---- 支出构成 ---- */
-
 .breakdown-list li {
   display: grid;
   grid-template-columns: minmax(90px, 1.2fr) 2fr auto;
@@ -317,8 +301,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---- 筛选栏 ---- */
-
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -350,8 +332,6 @@
   margin-right: auto;
   color: var(--text-muted);
 }
-
-/* ---- 交易列表 ---- */
 
 .txn-list {
   padding: 0;
@@ -398,12 +378,10 @@
   outline-offset: -2px;
 }
 
-/* 删除按钮推到左端，与「取消 / 保存」拉开距离，避免误点 */
 .form-delete {
   margin-right: auto;
 }
 
-/* 类目图标是用户数据里的 emoji，这里只负责给它一个着色的玻璃底座 */
 .txn-icon {
   flex: none;
   width: 32px;
@@ -454,7 +432,6 @@
   color: var(--ok);
 }
 
-/* 转账两条腿用弱化色，明确它们不参与收支统计 */
 .txn-amount.transfer_out,
 .txn-amount.transfer_in {
   color: var(--text-faint);
@@ -499,8 +476,6 @@
   gap: 12px;
   margin-top: 16px;
 }
-
-/* ---- 表单 ---- */
 
 .txn-form {
   display: flex;
@@ -653,8 +628,6 @@ input[type='number']:focus-visible {
   box-shadow: inset 0 0 0 2px var(--surface-solid);
 }
 
-/* ---- 弹窗 ---- */
-
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -741,8 +714,6 @@ input[type='number']:focus-visible {
   }
 }
 
-/* ---- 类目管理 ---- */
-
 .cat-manage {
   margin-top: 12px;
 }
@@ -803,8 +774,6 @@ input[type='number']:focus-visible {
   color: var(--text);
 }
 
-/* ---- 其它 ---- */
-
 .empty-state {
   padding: 40px 20px;
   text-align: center;
@@ -844,8 +813,6 @@ input[type='number']:focus-visible {
   margin: 0;
 }
 
-/* ---- 窄屏 ---- */
-
 @media (max-width: 640px) {
   .stat-row {
     grid-template-columns: 1fr;
@@ -866,16 +833,12 @@ input[type='number']:focus-visible {
   .app-nav {
     padding: 0 8px 8px;
   }
-  /* 触屏没有 hover。类目管理的按钮常驻显示；
-     交易行的操作按钮则整个隐藏——它们会把商家名挤没，
-     窄屏改由「点击整行 → 弹窗内删除」承担。 */
   .cat-manage-head .btn-ghost {
     opacity: 1;
   }
   .txn-actions {
     display: none;
   }
-  /* 回收站里没有弹窗可进，恢复按钮必须留着 */
   .txn-list.trash .txn-actions {
     display: flex;
     opacity: 1;
@@ -886,7 +849,6 @@ input[type='number']:focus-visible {
   .breakdown-bar {
     display: none;
   }
-  /* 手机上弹窗从底部升起，更接近原生 App 的操作习惯 */
   .modal-backdrop {
     align-items: flex-end;
     padding: 0;

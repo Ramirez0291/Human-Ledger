@@ -1,8 +1,8 @@
-name: renlei-zhangben
+name: human-ledger
 services:
   app:
     build: .
-    container_name: renlei-zhangben
+    container_name: human-ledger
     ports:
       - "${PORT:-8000}:8000"
     environment:
@@ -16,7 +16,7 @@ services:
       TIMEZONE: ${TIMEZONE:-Asia/Tokyo}
       TZ: ${TIMEZONE:-Asia/Tokyo}
     volumes:
-      # 数据库与上传文件都在这里，删掉它就等于删掉账本
+      # All your data lives here
       - ./data:/app/data
     restart: unless-stopped
     healthcheck:

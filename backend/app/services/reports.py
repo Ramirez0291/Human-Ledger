@@ -1,21 +1,4 @@
-"""报表聚合（需求书 F6）。
-
-所有口径都沿用 balances.py：转账两条腿不计入收支；金额为整数日元。
-按月聚合的查询全部走 transactions(user_id, date) 索引，10 万条量级下单次
-查询在 SQLite 上是毫秒级，所以不做缓存。
-
-筛选条件（账户 / 类目 / 关键词）对每个板块的含义：
-- 账户：只看该账户的交易
-- 类目：选大分類时含其子类；选子类只看子类
-- 关键词：商家名或备注包含
-账户视图板块不受类目 / 关键词筛选影响——它回答的是「各账户现在有多少钱」。
-
-「除外」是另一层，只作用于分析口径（收支合计、分类、商家、趋势、每日）：
-- 交易上的 exclude_from_analysis 标记：用户把搬家、买电脑、住院这类一次性开支标出来
-- max_single：临时阈值，单笔支出超过它就不算（看「日常开支」用）
-- exclude_category_ids：临时把整个类目拿掉（例如先不看房租，只看可变开支）
-被除外的金额不会消失，每个板块都会返回它，界面上可以一键看回原貌。
-"""
+"""Report aggregation. Transfers are never income or expense."""
 
 from __future__ import annotations
 
@@ -39,7 +22,6 @@ class ReportFilters:
     account_id: int | None = None
     category_id: int | None = None
     q: str | None = None
-    # ---- 除外（只影响分析口径）----
     exclude_flagged: bool = True
     max_single: int | None = None
     exclude_category_ids: tuple[int, ...] = ()
@@ -53,7 +35,6 @@ class ReportFilters:
 
 
 def month_bounds(ym: str) -> tuple[dt.date, dt.date]:
-    """'2026-09' → (2026-09-01, 2026-10-01)，右开区间。"""
     start = dt.date.fromisoformat(f"{ym}-01")
     end = (start.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
     return start, end
@@ -66,7 +47,6 @@ def shift_month(ym: str, delta: int) -> str:
 
 
 def category_scope(db: Session, user_id: int, category_id: int) -> list[int]:
-    """大分類展开为自身 + 子类；子类只含自身。"""
     ids = [category_id]
     children = db.execute(
         select(Category.id).where(Category.user_id == user_id, Category.parent_id == category_id)
@@ -92,7 +72,6 @@ def _apply_exclusions(stmt: Select, db: Session, user_id: int, f: ReportFilters)
     if f.exclude_flagged:
         stmt = stmt.where(Transaction.exclude_from_analysis.is_(False))
     if f.max_single is not None:
-        # 阈值只针对支出：一笔大额收入（奖金）不是「意外开支」
         stmt = stmt.where(
             not_(and_(Transaction.direction == Direction.expense, Transaction.amount > f.max_single))
         )
@@ -152,11 +131,6 @@ def category_breakdown(
     f: ReportFilters,
     direction: Direction = Direction.expense,
 ) -> dict:
-    """按大分類汇总，每个大分類内再按子类拆分（下钻数据一次给全）。
-
-    返回 {"total", "uncategorized", "items": [{category_id, name, icon, color,
-    amount, count, share, children: [...]}]}，items 按金额降序。
-    """
     stmt = (
         select(
             Transaction.category_id,
@@ -242,7 +216,6 @@ def top_merchants(
     f: ReportFilters,
     limit: int = TOP_MERCHANTS,
 ) -> list[dict]:
-    """当月支出最多的商家。按规范化名聚合，显示最近一次的原始写法。"""
     stmt = (
         select(
             Transaction.merchant_norm,
@@ -270,7 +243,6 @@ def top_merchants(
 
 
 def account_view(db: Session, user_id: int, start: dt.date, end: dt.date) -> list[dict]:
-    """各账户当前余额与当月变动（含转账，因为转账确实改变了账户余额）。"""
     balances = compute_balances(db, user_id)
     rows = db.execute(
         select(
@@ -327,7 +299,6 @@ def overview(db: Session, user_id: int, locale: str, ym: str, f: ReportFilters) 
     return {
         "year_month": ym,
         "totals": totals,
-        # 除外之前的原貌，以及被拿掉的部分。界面用它显示「已除外 ¥X（N 笔）」
         "raw_totals": raw,
         "excluded": {
             "expense": raw["expense"] - totals["expense"],
@@ -345,12 +316,10 @@ def overview(db: Session, user_id: int, locale: str, ym: str, f: ReportFilters) 
 
 
 def trend(db: Session, user_id: int, end_ym: str, months: int, f: ReportFilters) -> list[dict]:
-    """截止 end_ym（含）往前 months 个月的收支与结余。没有交易的月份补 0。"""
     first_ym = shift_month(end_ym, -(months - 1))
     start, _ = month_bounds(first_ym)
     _, end = month_bounds(end_ym)
 
-    # SQLite 上 date 列存为 ISO 字符串，截取前 7 位即年月；这比逐月 12 次查询快
     ym_expr = func.substr(Transaction.date, 1, 7)
     stmt = (
         select(
@@ -397,8 +366,6 @@ def trend(db: Session, user_id: int, end_ym: str, months: int, f: ReportFilters)
 
 
 def daily(db: Session, user_id: int, ym: str, f: ReportFilters) -> dict:
-    """本月与上月逐日支出。界面据此画「每日支出 + 累计」并与上月同期对比。"""
-
     def per_day(month: str, filters: ReportFilters) -> dict[int, int]:
         start, end = month_bounds(month)
         stmt = (
@@ -437,10 +404,6 @@ def daily(db: Session, user_id: int, ym: str, f: ReportFilters) -> dict:
 
 
 def large_expenses(db: Session, user_id: int, locale: str, ym: str, f: ReportFilters, limit: int = 8) -> list[dict]:
-    """本月单笔最大的支出，外加所有已标记除外的支出——给用户一处地方逐笔决定「算不算」。
-
-    这里不套用除外条件（否则被除外的就看不到了），只套用账户 / 类目 / 关键词筛选。
-    """
     start, end = month_bounds(ym)
     base = f.without_exclusions()
     cond = (
@@ -473,7 +436,6 @@ def large_expenses(db: Session, user_id: int, locale: str, ym: str, f: ReportFil
     by_id = {a.id: a for a in accounts}
 
     def transfer_like(t: Transaction) -> bool:
-        # 信用卡还款 / 取现 / 充值 / 转入证券：钱只是换了个账户，不是消费
         return any(e.transfer for e in lookup_all(t.merchant_norm or ""))
 
     def counterpart(t: Transaction) -> int | None:
@@ -492,7 +454,6 @@ def large_expenses(db: Session, user_id: int, locale: str, ym: str, f: ReportFil
             "category_name": names.get(t.category_id) if t.category_id else None,
             "category_icon": icons.get(t.category_id) if t.category_id else None,
             "exclude_from_analysis": t.exclude_from_analysis,
-            # 被阈值拿掉的也要让界面知道，否则用户会困惑「我没标它怎么也不算了」
             "over_threshold": f.max_single is not None and t.amount > f.max_single,
             "transfer_like": transfer_like(t),
             "suggested_counterpart_id": counterpart(t) if transfer_like(t) else None,

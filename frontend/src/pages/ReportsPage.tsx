@@ -32,7 +32,6 @@ const TREND_MONTHS = 12
 const THRESHOLDS = [10000, 30000, 50000, 100000]
 const STORAGE_KEY = 'reports.analysis.v1'
 
-/** 分析口径：哪些开支不算进「日常开支」。按浏览器记住，下次打开还是这套 */
 interface Analysis {
   excludeFlagged: boolean
   maxSingle: number | null
@@ -46,7 +45,6 @@ function loadAnalysis(): Analysis {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return { ...DEFAULT_ANALYSIS, ...(JSON.parse(raw) as Partial<Analysis>) }
   } catch {
-    /* 隐私模式等拿不到存储时用默认值 */
   }
   return DEFAULT_ANALYSIS
 }
@@ -78,7 +76,6 @@ export function ReportsPage() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis))
     } catch {
-      /* 同上 */
     }
   }, [analysis])
 
@@ -119,7 +116,6 @@ export function ReportsPage() {
     return () => clearTimeout(timer)
   }, [load, query])
 
-  // 月份或筛选一变，下钻与选中的日期就失效
   useEffect(() => {
     setDrill(null)
   }, [ym, filters, side])
@@ -223,7 +219,6 @@ export function ReportsPage() {
           ))}
         </select>
 
-        {/* ---- 分析口径：主动除外大额 / 意外开支 ---- */}
         <div className="analysis-bar">
           <span className="analysis-label">{t('reports.analysisLabel')}</span>
           <button
@@ -566,7 +561,6 @@ export function ReportsPage() {
 
 // --------------------------------------------------------------------------
 
-/** 「计入 / 除外」开关。开 = 计入分析 */
 function ExcludeSwitch({ excluded, onChange }: { excluded: boolean; onChange: (excluded: boolean) => void }) {
   const { t } = useTranslation()
   return (
@@ -589,7 +583,6 @@ function ExcludeSwitch({ excluded, onChange }: { excluded: boolean; onChange: (e
   )
 }
 
-/** 选中某天后列出当天的支出，可逐笔除外 */
 function DayPanel({
   date,
   filters,
@@ -708,10 +701,6 @@ function Kpi({
   )
 }
 
-/**
- * 大额支出里像「钱换了个账户」的那几笔：信用卡还款、ATM 取现、充值、转入证券。
- * 卡上的每笔消费已经各记一次，还款再算支出就是双计，所以给一个就地改记转账的入口。
- */
 function TransferFix({
   item,
   accounts,

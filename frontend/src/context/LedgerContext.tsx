@@ -10,16 +10,9 @@ import {
 import { useTranslation } from 'react-i18next'
 import { api, type Account, type CategoryNode } from '../api/client'
 
-/**
- * 账户与类目是几乎每个页面都要用的参照数据，且改动不频繁，
- * 因此集中取一次并缓存，避免每个页面各自请求。
- *
- * 类目名称随语言变化（后端按 locale 返回），所以语言切换时必须重新拉取。
- */
 interface LedgerContextValue {
   accounts: Account[]
   categories: CategoryNode[]
-  /** 扁平化的类目索引，便于按 id 查名称 */
   categoryById: Map<number, CategoryNode>
   loading: boolean
   refreshAccounts: () => Promise<void>
@@ -86,6 +79,6 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
 
 export function useLedger(): LedgerContextValue {
   const ctx = useContext(LedgerContext)
-  if (!ctx) throw new Error('useLedger 必须在 LedgerProvider 内使用')
+  if (!ctx) throw new Error('useLedger must be used inside LedgerProvider')
   return ctx
 }

@@ -1,9 +1,3 @@
-"""类目管理（需求书 F5.1）。
-
-名称不存在 categories 表，而按语言存于 category_names。接口返回
-name（按请求语言解析）与 names（全部语言，供编辑表单使用）。
-"""
-
 from __future__ import annotations
 
 import re
@@ -52,7 +46,6 @@ def list_categories(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[dict]:
-    """两级类目树。名称按 locale 解析，缺失时回退到用户偏好再回退到默认语言。"""
     target = locale if locale in SUPPORTED_LOCALES else user.locale
     fallback = settings.default_locale
 
@@ -101,14 +94,12 @@ def create_category(
     if payload.parent_id is not None:
         parent = _get_owned(db, user, payload.parent_id)
         if parent.parent_id is not None:
-            # 两级足够表达家计簿的分类粒度，再深会让选择器难用
             raise HTTPException(status_code=400, detail="max_depth_two_levels")
         if parent.type != payload.type:
             raise HTTPException(status_code=400, detail="type_must_match_parent")
 
     base = _slugify(next(iter(payload.names.values())))
     key = f"{parent.key}.{base}" if parent else f"custom.{base}"
-    # key 在用户内唯一，重名时追加序号
     suffix = 1
     while db.query(Category).filter(Category.user_id == user.id, Category.key == key).first():
         suffix += 1
@@ -134,7 +125,6 @@ def create_category(
     db.add(category)
     db.flush()
 
-    # 未提供的语言回退到已提供的第一个名称，避免切换语言时出现空白类目
     default_name = next(iter(payload.names.values()))
     for loc in SUPPORTED_LOCALES:
         db.add(
@@ -214,11 +204,6 @@ def delete_category(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
-    """删除类目。
-
-    系统预置类目不可删，只能隐藏——删掉后若将来重新播种会产生重复，
-    而且历史账目会失去分类归属。仍在使用的类目也不可删，同理。
-    """
     category = _get_owned(db, user, category_id)
     if category.is_system:
         raise HTTPException(status_code=409, detail="system_category_hide_instead")

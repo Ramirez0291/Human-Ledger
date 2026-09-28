@@ -1,8 +1,4 @@
-"""SQLAlchemy 声明式基类。
-
-统一命名约定：SQLite 不支持匿名约束的 ALTER，Alembic 在 batch 模式下
-依赖具名约束才能正确重建表，因此必须在此固定命名规则。
-"""
+"""Fixed constraint naming so Alembic batch mode can rebuild SQLite tables."""
 
 from __future__ import annotations
 

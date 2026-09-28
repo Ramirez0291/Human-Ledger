@@ -1,4 +1,4 @@
-/** 后端 API 封装。会话走 HttpOnly Cookie，因此所有请求都要带 credentials。 */
+/* API client. Session is an HttpOnly cookie, so always send credentials. */
 
 export class ApiError extends Error {
   constructor(
@@ -42,7 +42,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return payload as T
 }
 
-/** multipart 上传：不能手动设 Content-Type，浏览器要自己带 boundary。 */
 async function upload<T>(path: string, form: FormData): Promise<T> {
   const res = await fetch(`/api${path}`, { method: 'POST', credentials: 'include', body: form })
   const text = await res.text()
@@ -76,8 +75,6 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
   return s ? `?${s}` : ''
 }
 
-// ---- 基础类型 ----
-
 export interface User {
   id: number
   username: string
@@ -106,7 +103,6 @@ export interface SystemInfo {
 export interface OcrProviderInfo {
   key: string
   available: boolean
-  /** i18n 词条 key，由前端翻译；后端不返回已翻译文案（需求书 F10） */
   reason_key: string
   active: boolean
 }
@@ -116,8 +112,6 @@ export interface OcrProviders {
   providers: OcrProviderInfo[]
   note_key: string
 }
-
-// ---- 账户 ----
 
 export type AccountType = 'cash' | 'bank' | 'credit_card' | 'emoney' | 'prepaid' | 'investment'
 
@@ -159,8 +153,6 @@ export interface ReconcileResult {
   diff: number
 }
 
-// ---- 类目 ----
-
 export interface CategoryNode {
   id: number
   key: string
@@ -174,8 +166,6 @@ export interface CategoryNode {
   is_hidden: boolean
   children: CategoryNode[]
 }
-
-// ---- 交易 ----
 
 export type Direction = 'expense' | 'income' | 'transfer_out' | 'transfer_in'
 
@@ -249,8 +239,6 @@ export interface TransactionFilters {
   page_size?: number
 }
 
-// ---- 总览 ----
-
 export interface Summary {
   year_month: string
   income: number
@@ -271,18 +259,12 @@ export interface Summary {
   transaction_count: number
 }
 
-
-// ---- 报表 ----
-
 export interface ReportFilters {
   account_id?: number
   category_id?: number
   q?: string
-  /** true 时把标记为除外的交易也算进来 */
   include_flagged?: boolean
-  /** 单笔支出超过此金额不计入分析 */
   max_single?: number
-  /** 逗号分隔的类目 id */
   exclude_categories?: string
 }
 
@@ -317,7 +299,6 @@ export interface CategoryBreakdown {
 export interface ReportOverview {
   year_month: string
   totals: ReportTotals
-  /** 除外之前的原貌 */
   raw_totals: ReportTotals
   excluded: { expense: number; income: number; count: number }
   previous: ReportTotals
@@ -363,12 +344,9 @@ export interface LargeExpense {
   over_threshold: boolean
   account_id: number
   account_name: string
-  /** 像信用卡还款 / 取现 / 充值 / 转入证券：钱只是换了账户 */
   transfer_like: boolean
   suggested_counterpart_id: number | null
 }
-
-// ---- 导入 / 待确认区 ----
 
 export type DupStatus = 'none' | 'merged' | 'duplicate' | 'maybe'
 export type CategorySource = 'rule' | 'memory' | 'dictionary' | 'llm' | 'none'
@@ -423,15 +401,12 @@ export interface ImportBatch {
   excluded_rows: number
   duplicate_rows: number
   maybe_rows: number
-  /** 已确认 / 已撤销批次的入账概况 */
   ledger_rows: number
   date_from: string | null
   date_to: string | null
   account_names: string[]
   overlap_rows: number
-  /** 其中与更早的记录重叠的行（这批是多出来的那份） */
   redundant_rows: number
-  /** 与哪个批次重叠多少行；键 0 = 手动记账 */
   overlaps: Record<string, number>
 }
 
@@ -460,13 +435,12 @@ export interface StagedRowUpdate {
   is_selected?: boolean
   counterpart_account_id?: number
   clear_counterpart?: boolean
-  clear_category?: boolean  /** 改类别时连带同批次里同商家 / 同品牌的行（默认开） */
+  clear_category?: boolean
   apply_to_similar?: boolean
 }
 
 export interface StagedRowPatch {
   row: StagedRow
-  /** 因 apply_to_similar 被连带改掉的行 */
   affected: StagedRow[]
 }
 
@@ -523,8 +497,6 @@ export interface CsvPreview {
   suggested_account_id: number | null
 }
 
-// ---- 规则 ----
-
 export type MatchType = 'exact' | 'contains' | 'regex'
 
 export interface Rule {
@@ -538,10 +510,7 @@ export interface Rule {
   enabled: boolean
 }
 
-// ---- 接口 ----
-
 export const api = {
-  // 认证
   status: () => request<AppStatus>('/status'),
   setup: (body: { username: string; password: string; locale: string }) =>
     request<User>('/setup', { method: 'POST', body: JSON.stringify(body) }),
@@ -553,12 +522,10 @@ export const api = {
   updateLocale: (locale: string) =>
     request<User>('/me/locale', { method: 'PATCH', body: JSON.stringify({ locale }) }),
 
-  // 元数据
   system: () => request<SystemInfo>('/system'),
   ocrProviders: () => request<OcrProviders>('/ocr/providers'),
   summary: (yearMonth?: string) => request<Summary>(`/summary${qs({ year_month: yearMonth })}`),
 
-  // 账户
   accounts: (includeArchived = false) =>
     request<Account[]>(`/accounts${qs({ include_archived: includeArchived })}`),
   createAccount: (body: AccountInput) =>
@@ -572,7 +539,6 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  // 类目
   categories: (locale?: string, type?: 'expense' | 'income') =>
     request<CategoryNode[]>(`/categories${qs({ locale, type })}`),
   createCategory: (body: {
@@ -593,7 +559,6 @@ export const api = {
   ) => request<CategoryNode>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteCategory: (id: number) => request<void>(`/categories/${id}`, { method: 'DELETE' }),
 
-  // 交易
   transactions: (filters: TransactionFilters = {}) =>
     request<TransactionPage>(`/transactions${qs({ ...filters })}`),
   createTransaction: (body: TransactionInput) =>
@@ -611,7 +576,6 @@ export const api = {
       `/transactions/suggest-category${qs({ merchant })}`,
     ),
 
-  // 导入
   importBatches: (status?: BatchStatus) => request<ImportBatch[]>(`/imports${qs({ status })}`),
   importText: (body: {
     account_id: number
@@ -652,7 +616,6 @@ export const api = {
     return upload<BatchDetail>('/imports/csv', form)
   },
 
-  // 规则
   rules: () => request<Rule[]>('/rules'),
   createRule: (body: {
     match_type: MatchType
@@ -673,7 +636,6 @@ export const api = {
   ) => request<Rule>(`/rules/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteRule: (id: number) => request<void>(`/rules/${id}`, { method: 'DELETE' }),
 
-  // 报表 / 导出 / 备份
   reportOverview: (yearMonth: string, f: ReportFilters = {}) =>
     request<ReportOverview>(`/reports/overview${qs({ year_month: yearMonth, ...f })}`),
   reportTrend: (end: string, months: number, f: ReportFilters = {}) =>
@@ -692,7 +654,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ counterpart_account_id: counterpartAccountId }),
     }),
-  /** 导出走浏览器原生下载（带 Cookie），所以只给 URL 不发请求 */
   exportUrl: (f: TransactionFilters = {}) => `/api/transactions/export.csv${qs({ ...f })}`,
   backupUrl: '/api/backup',
 }

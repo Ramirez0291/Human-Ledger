@@ -27,7 +27,6 @@ export default function App() {
       const s = await api.status()
       setStatus(s)
       setUser(s.user)
-      // 已登录用户的语言偏好存在后端，优先于浏览器检测结果
       if (s.user?.locale) applyLocale(s.user.locale)
     } catch {
       setFailed(true)
@@ -42,7 +41,6 @@ export default function App() {
     (locale: string) => {
       if (!user) return
       void api.updateLocale(locale).catch(() => {
-        /* 语言偏好持久化失败不影响本次切换，忽略 */
       })
     },
     [user],
@@ -59,7 +57,7 @@ export default function App() {
       <div className="center-screen">
         <div className="auth-card">
           <h2>{t('common.error')}</h2>
-          <p className="subtitle">无法连接到后端服务 / Cannot reach the backend.</p>
+          <p className="subtitle">Cannot reach the backend.</p>
           <button className="btn-primary" style={{ marginTop: 20 }} onClick={() => void load()}>
             {t('common.retry')}
           </button>

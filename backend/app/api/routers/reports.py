@@ -1,5 +1,3 @@
-"""报表（需求书 F6）与数据导出 / 备份（F9）。"""
-
 from __future__ import annotations
 
 import csv
@@ -38,10 +36,10 @@ def _filters(
     account_id: int | None = None,
     category_id: int | None = Query(default=None),
     q: str | None = Query(default=None, max_length=128),
-    include_flagged: bool = Query(default=False, description="true 时把标记为除外的交易也算进来"),
-    max_single: int | None = Query(default=None, ge=0, description="单笔支出超过此金额不计入分析"),
+    include_flagged: bool = Query(default=False, description="Include transactions flagged as excluded"),
+    max_single: int | None = Query(default=None, ge=0, description="Exclude single expenses above this amount"),
     exclude_categories: str | None = Query(
-        default=None, max_length=512, pattern=r"^\d+(,\d+)*$", description="逗号分隔的类目 id"
+        default=None, max_length=512, pattern=r"^\d+(,\d+)*$", description="Comma-separated category ids"
     ),
 ) -> ReportFilters:
     ids = tuple(int(x) for x in exclude_categories.split(",")) if exclude_categories else ()
@@ -62,7 +60,6 @@ def report_overview(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """月度概览：收支结余与上月对比、分类占比（含子类下钻）、商户 TOP、账户视图。"""
     return reports.overview(db, user.id, user.locale, year_month or _current_ym(), f)
 
 
@@ -74,7 +71,6 @@ def report_trend(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """近 N 个月收支与结余趋势。"""
     return {"months": reports.trend(db, user.id, end or _current_ym(), months, f)}
 
 
@@ -85,7 +81,6 @@ def report_daily(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """本月与上月逐日支出，用于每日柱状 + 累计对比图。"""
     return reports.daily(db, user.id, year_month or _current_ym(), f)
 
 
@@ -97,18 +92,14 @@ def report_large_expenses(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
-    """本月最大的几笔支出与所有已除外的支出，供逐笔决定是否计入分析。"""
     return {
         "items": reports.large_expenses(db, user.id, user.locale, year_month or _current_ym(), f, limit)
     }
 
 
 # --------------------------------------------------------------------------
-# CSV 导出
 # --------------------------------------------------------------------------
 
-# 表头固定英文键名而不是翻译：导出文件要能被再导入 / 被脚本处理，
-# 不能随界面语言变化。类目名按用户语言给出，供人读。
 _EXPORT_COLUMNS = [
     "id",
     "date",
@@ -140,7 +131,6 @@ def export_transactions(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StreamingResponse:
-    """筛选条件与交易列表一致；不带条件即导出全部。UTF-8 BOM，Excel 双击可开。"""
     query = db.query(Transaction).filter(
         Transaction.user_id == user.id, Transaction.deleted_at.is_(None)
     )
@@ -184,7 +174,7 @@ def export_transactions(
     def rows():
         buf = io.StringIO()
         w = csv.writer(buf, lineterminator="\r\n")
-        yield "﻿"  # BOM：没有它 Excel 会把 UTF-8 的日文当成乱码
+        yield "﻿"  # BOM so Excel reads UTF-8
         w.writerow(_EXPORT_COLUMNS)
         yield buf.getvalue()
         buf.seek(0)
@@ -230,7 +220,6 @@ def export_transactions(
 
 
 # --------------------------------------------------------------------------
-# 完整备份
 # --------------------------------------------------------------------------
 
 
@@ -239,17 +228,12 @@ def download_backup(
     background: BackgroundTasks,
     user: User = Depends(get_current_user),  # noqa: ARG001
 ) -> FileResponse:
-    """数据库 + 上传目录打成一个 zip。
-
-    SQLite 用在线备份 API 拷贝快照，而不是直接读文件：WAL 模式下未 checkpoint
-    的写入还在 -wal 文件里，直接拷 ledger.db 会丢最近的数据。
-    恢复用 scripts/restore_backup.py（需停服务）。
-    """
+    """Uses the SQLite online backup API; copying the file directly would miss data still in the WAL."""
     if not settings.resolved_database_url.startswith("sqlite"):
         raise HTTPException(status_code=400, detail="backup_sqlite_only")
     db_path = Path(settings.resolved_database_url.removeprefix("sqlite:///"))
 
-    tmp_dir = Path(tempfile.mkdtemp(prefix="renlei-backup-"))
+    tmp_dir = Path(tempfile.mkdtemp(prefix="human-ledger-backup-"))
     snapshot = tmp_dir / "ledger.db"
     src = sqlite3.connect(db_path)
     try:
@@ -262,7 +246,7 @@ def download_backup(
         src.close()
 
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    zip_path = tmp_dir / f"renlei-backup-{stamp}.zip"
+    zip_path = tmp_dir / f"human-ledger-backup-{stamp}.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         zf.write(snapshot, "ledger.db")
         uploads = settings.uploads_dir
@@ -271,7 +255,7 @@ def download_backup(
                 zf.write(p, Path("uploads") / p.relative_to(uploads))
         zf.writestr(
             "MANIFEST.txt",
-            f"人类账本 backup\ncreated: {dt.datetime.now().isoformat(timespec='seconds')}\n"
+            f"Human Ledger backup\ncreated: {dt.datetime.now().isoformat(timespec='seconds')}\n"
             "restore: python scripts/restore_backup.py <this zip>\n",
         )
 
