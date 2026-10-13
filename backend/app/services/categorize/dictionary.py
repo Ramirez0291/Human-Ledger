@@ -1,4 +1,15 @@
-"""Built-in Japanese merchant dictionary. Patterns match normalized merchant names (NFKC, lowercase, no spaces)."""
+"""内置商家词典——分类判别链第 3 层（需求书 F5.2）。
+
+本文件的 ENTRIES 是日本地区包的词典；其他地区的词典放在 `app/regions/<地区>.py`
+的 DICTIONARY 里，查询时按用户的地区键取（`lookup_all(norm, region)`）。
+
+模式与规范化后的商家名（merchant_norm：NFKC、小写、去空格）做 contains 匹配，
+因此这里的模式也要写成规范化后的形式：全部小写、无空格、半角。
+
+另含「转账提示」：信用卡还款、IC 卡充值、ATM 取现等匹配到时，标记为疑似转账，
+待确认区会提示用户指定对方账户（附录 A.5.2）。不标记的话，
+信用卡还款会与刷卡消费双重计入支出。
+"""
 
 from __future__ import annotations
 
@@ -8,23 +19,25 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class DictEntry:
-    pattern: str
-    category_key: str | None
+    pattern: str  # 规范化形式的子串，或以 "re:" 开头的正则
+    category_key: str | None  # None 表示仅作转账提示
     transfer: bool = False
 
 
-# Order matters: first match wins.
+# 顺序有意义：先匹配到的先生效，因此更具体的模式放前面
 ENTRIES: tuple[DictEntry, ...] = (
-    # ---- Transfer hints ----
-    DictEntry("カードサービス", None, transfer=True),
+    # ---- 转账提示（优先于分类）----
+    DictEntry("カードサービス", None, transfer=True),  # ラクテンカードサービス 等信用卡还款
     DictEntry("カード引落", None, transfer=True),
     DictEntry("カード代金", None, transfer=True),
     DictEntry("re:(?:jcb|visa|master|amex|ニコス|セゾン|エポス|イオンクレジット|三井住友カード|smbc|dc|uc|オリコ|jaccs)(?:カード)?(?:サービス|引落|代金|ご利用代金)", None, transfer=True),
+    # 三井住友銀行口座明細：ATM 取现 / 存入写作「カード ｾﾌﾞﾝBK0UJD」「カード (756)」
     DictEntry("re:^カード", None, transfer=True),
-    DictEntry("ミツイスミトモカード", None, transfer=True),
+    DictEntry("ミツイスミトモカード", None, transfer=True),  # 三井住友カード 还款
     DictEntry("三井住友カード", None, transfer=True),
-    DictEntry("re:(?:ufj)?j-?west", None, transfer=True),
-    DictEntry("チャージ", None, transfer=True),
+    DictEntry("re:(?:ufj)?j-?west", None, transfer=True),  # J-WEST カード 还款（经 UFJ NICOS）
+    DictEntry("チャージ", None, transfer=True),  # ICOCA / Suica / PayPay チャージ
+    # 口座明細里的电子钱包充值只写钱包名（「ﾍﾟｲﾍﾟｲ」「ﾗｲﾝ ﾍﾟｲ」），也是转账
     DictEntry("ペイペイ", None, transfer=True),
     DictEntry("paypay", None, transfer=True),
     DictEntry("ラインペイ", None, transfer=True),
@@ -34,12 +47,14 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("カード出金", None, transfer=True),
     DictEntry("引き出し", None, transfer=True),
     DictEntry("振替", None, transfer=True),
-    DictEntry("re:証券|シヨウケン", None, transfer=True),
+    DictEntry("re:証券|シヨウケン", None, transfer=True),  # 转入证券账户是投资，不是消费
+    # Paidy（あと払い）的月度扣款：钱付给的是 Paidy 这条信用线，实际消费在别处
     DictEntry("ペイデイ", None, transfer=True),
     DictEntry("paidy", None, transfer=True),
+    # 银行明细的「Vｻｶﾞｸ885973」：iD 差额调整，金额小、方向不定，按转账提示让用户看一眼
     DictEntry("re:^vサガク", None, transfer=True),
 
-    # ---- Chains and services ----
+    # ---- 2026-09 依据真实账单（三井住友 / 楽天 / PayPay）补充 ----
     DictEntry("ケンタッキー", "food.dining"),
     DictEntry("kfc", "food.dining"),
     DictEntry("バーガーキング", "food.dining"),
@@ -97,9 +112,9 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("損保", "insurance"),
     DictEntry("税務署", "tax.income"),
     DictEntry("ゼイムシヨ", "tax.income"),
-    DictEntry("カンプ", "income.refund"),
+    DictEntry("カンプ", "income.refund"),  # 還付（国保還付金 等）
     DictEntry("コクホ", "tax.health_insurance"),
-    DictEntry("re:^pe[a-zA-Z0-9]*(?:オオサカシ|トウキヨウト|.*シヤクシヨ)", "tax.resident"),
+    DictEntry("re:^pe[a-zA-Z0-9]*(?:オオサカシ|トウキヨウト|タチカワシ|.*シヤクシヨ)", "tax.resident"),
     DictEntry("ドクターマーチン", "beauty.clothing"),
     DictEntry("靴下屋", "beauty.clothing"),
     DictEntry("アルペン", "beauty.clothing"),
@@ -113,14 +128,14 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("ポイント期限切れ", "other"),
     DictEntry("ポイント、残高の取消", "other"),
 
-    # ---- Food ----
+    # ---- 食費 ----
     DictEntry("セブン-イレブン", "food.convenience"),
     DictEntry("セブンイレブン", "food.convenience"),
     DictEntry("ローソン", "food.convenience"),
     DictEntry("ファミリーマート", "food.convenience"),
     DictEntry("ファミマ", "food.convenience"),
     DictEntry("ミニストップ", "food.convenience"),
-    DictEntry("ミニストツプ", "food.convenience"),
+    DictEntry("ミニストツプ", "food.convenience"),  # OCR / 明細常见的大写ツ
     DictEntry("デイリーヤマザキ", "food.convenience"),
     DictEntry("ライフ", "food.groceries"),
     DictEntry("イオン", "food.groceries"),
@@ -171,7 +186,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("コメダ", "food.cafe"),
     DictEntry("サンマルク", "food.cafe"),
 
-    # ---- Daily ----
+    # ---- 日用品 ----
     DictEntry("amazon", "daily.supplies"),
     DictEntry("アマゾン", "daily.supplies"),
     DictEntry("ダイソー", "daily.supplies"),
@@ -195,7 +210,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("メルカリ", "daily.supplies"),
     DictEntry("zozotown", "beauty.clothing"),
 
-    # ---- Housing ----
+    # ---- 住居 ----
     DictEntry("家賃", "housing.rent"),
     DictEntry("ヤチン", "housing.rent"),
     DictEntry("引越", "housing"),
@@ -204,7 +219,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("管理費", "housing.management"),
     DictEntry("共益費", "housing.management"),
 
-    # ---- Utilities ----
+    # ---- 水道光熱費 ----
     DictEntry("東京電力", "utilities.electricity"),
     DictEntry("関西電力", "utilities.electricity"),
     DictEntry("中部電力", "utilities.electricity"),
@@ -221,7 +236,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("水道料金", "utilities.water"),
     DictEntry("水道", "utilities.water"),
 
-    # ---- Communication ----
+    # ---- 通信費 ----
     DictEntry("ドコモ", "comm.mobile"),
     DictEntry("docomo", "comm.mobile"),
     DictEntry("ソフトバンク", "comm.mobile"),
@@ -249,10 +264,10 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("icloud", "comm.subscription"),
     DictEntry("microsoft", "comm.subscription"),
     DictEntry("adobe", "comm.subscription"),
-    DictEntry("プライム", "comm.subscription"),
+    DictEntry("プライム", "comm.subscription"),  # アマゾンプライム会費
     DictEntry("プライムカイヒ", "comm.subscription"),
 
-    # ---- Entertainment ----
+    # ---- 娯楽 ----
     DictEntry("spotify", "entertainment.streaming"),
     DictEntry("netflix", "entertainment.streaming"),
     DictEntry("youtube", "entertainment.streaming"),
@@ -277,7 +292,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("airbnb", "entertainment.travel"),
     DictEntry("booking.com", "entertainment.travel"),
 
-    # ---- Transport ----
+    # ---- 交通費 ----
     DictEntry("etcカード", "transport.highway"),
     DictEntry("re:(?<![a-z])etc(?![a-z])", "transport.highway"),
     DictEntry("高速", "transport.highway"),
@@ -313,10 +328,10 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("re:(?<![a-z])go(?![a-z])(?:タクシー)?", "transport.taxi"),
     DictEntry("didi", "transport.taxi"),
     DictEntry("uber", "transport.taxi"),
-    DictEntry("タイムズ", "transport.fuel"),
+    DictEntry("タイムズ", "transport.fuel"),  # 停车/租车归燃油交通
     DictEntry("パーキング", "transport.fuel"),
 
-    # ---- Medical ----
+    # ---- 医療費 ----
     DictEntry("病院", "medical.consultation"),
     DictEntry("クリニック", "medical.consultation"),
     DictEntry("医院", "medical.consultation"),
@@ -324,7 +339,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("薬局", "medical.medicine"),
     DictEntry("ドラッグ", "medical.medicine"),
 
-    # ---- Education ----
+    # ---- 教育 ----
     DictEntry("紀伊國屋", "education.books"),
     DictEntry("ジュンク堂", "education.books"),
     DictEntry("ブックオフ", "education.books"),
@@ -332,7 +347,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("udemy", "education.language"),
     DictEntry("duolingo", "education.language"),
 
-    # ---- Clothing & beauty ----
+    # ---- 衣服・美容 ----
     DictEntry("ユニクロ", "beauty.clothing"),
     DictEntry("uniqlo", "beauty.clothing"),
     DictEntry("re:(?<![a-z])gu(?![a-z])", "beauty.clothing"),
@@ -341,14 +356,14 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("h&m", "beauty.clothing"),
     DictEntry("アウトレット", "beauty.clothing"),
     DictEntry("ららぽーと", "beauty.clothing"),
-    DictEntry("mop", "beauty.clothing"),
+    DictEntry("mop", "beauty.clothing"),  # 三井アウトレットパーク
     DictEntry("美容室", "beauty.salon"),
     DictEntry("美容院", "beauty.salon"),
     DictEntry("ヘアサロン", "beauty.salon"),
     DictEntry("qbハウス", "beauty.salon"),
 
-    # ---- Tax & social insurance ----
-    DictEntry("シヤカイホケン", "tax.pension"),
+    # ---- 税金・社会保険 ----
+    DictEntry("シヤカイホケン", "tax.pension"),  # 社会保険料等（国民年金）
     DictEntry("社会保険", "tax.pension"),
     DictEntry("国民年金", "tax.pension"),
     DictEntry("ネンキン", "tax.pension"),
@@ -362,7 +377,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("健康保険", "tax.health_insurance"),
     DictEntry("介護保険", "tax.nursing_insurance"),
 
-    # ---- Remittance ----
+    # ---- 送金 ----
     DictEntry("wise", "remittance.overseas"),
     DictEntry("ワイズ", "remittance.overseas"),
     DictEntry("western union", "remittance.overseas"),
@@ -370,7 +385,7 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("仕送り", "remittance.family"),
     DictEntry("送金手数料", "remittance.fee"),
 
-    # ---- Income ----
+    # ---- 収入 ----
     DictEntry("給与", "income.salary"),
     DictEntry("給料", "income.salary"),
     DictEntry("キュウヨ", "income.salary"),
@@ -379,11 +394,11 @@ ENTRIES: tuple[DictEntry, ...] = (
     DictEntry("還付", "income.refund"),
     DictEntry("返金", "income.refund"),
     DictEntry("利息", "income.other"),
-    DictEntry("外国関係", "income.other"),
+    DictEntry("外国関係", "income.other"),  # 海外汇入
     DictEntry("返品", "income.refund"),
     DictEntry("配当", "income.other"),
 
-    # ---- Fallback: generic business words ----
+    # ---- 兜底：店名里带的业态词。放在最后，只有前面全部不命中才轮到 ----
     DictEntry("焼肉", "food.dining"),
     DictEntry("ヤキニク", "food.dining"),
     DictEntry("寿司", "food.dining"),
@@ -426,31 +441,61 @@ ENTRIES: tuple[DictEntry, ...] = (
 
 
 def _norm(p: str) -> str:
-    """Patterns must go through the same normalization as merchant names."""
+    """词典模式必须走与商家名**完全相同**的规范化管道。
+
+    否则规范化规则一变（如片假名后的连字符归一为长音），词典就集体失效：
+    「セブン-イレブン」规范化后是「セブンーイレブン」，若模式只做小写去空格，
+    就永远匹配不到。规范化结果为空的模式（如会被当作支付前缀剥掉的 "visa"）
+    退回简单形式。
+    """
     from app.services.normalize import normalize_merchant
 
     full = normalize_merchant(p)
     return full or re.sub(r"\s+", "", p.lower())
 
 
-_COMPILED: list[tuple[re.Pattern[str] | str, DictEntry]] = []
-for entry in ENTRIES:
-    if entry.pattern.startswith("re:"):
-        _COMPILED.append((re.compile(entry.pattern[3:]), entry))
-    else:
-        _COMPILED.append((_norm(entry.pattern), entry))
+_Compiled = list[tuple[re.Pattern[str] | str, DictEntry]]
+_COMPILED: dict[str, _Compiled] = {}
 
 
-def lookup(merchant_norm: str) -> DictEntry | None:
-    for entry in lookup_all(merchant_norm):
+def _entries_for(region: str) -> tuple[DictEntry, ...]:
+    if region == "CN":
+        from app.regions.cn import DICTIONARY
+
+        return DICTIONARY
+    return ENTRIES
+
+
+def _compiled(region: str) -> _Compiled:
+    """按地区编译一次后缓存。延迟到首次查询：地区包模块要先 import 本模块的 DictEntry。"""
+    got = _COMPILED.get(region)
+    if got is None:
+        got = []
+        for entry in _entries_for(region):
+            if entry.pattern.startswith("re:"):
+                got.append((re.compile(entry.pattern[3:]), entry))
+            else:
+                got.append((_norm(entry.pattern), entry))
+        _COMPILED[region] = got
+    return got
+
+
+def lookup(merchant_norm: str, region: str = "JP") -> DictEntry | None:
+    """按规范化商家名查词典。返回第一个命中的条目，无命中返回 None。"""
+    for entry in lookup_all(merchant_norm, region):
         return entry
     return None
 
 
-def lookup_all(merchant_norm: str):
+def lookup_all(merchant_norm: str, region: str = "JP"):
+    """按优先级依次产出所有命中的条目。
+
+    调用方可以跳过方向不符的条目再取下一个：「ポイント獲得 一蘭」先命中「一蘭」
+    （餐饮，支出类），但这行是收入，应继续取到「ポイント獲得」（收入类）。
+    """
     if not merchant_norm:
         return
-    for needle, entry in _COMPILED:
+    for needle, entry in _compiled(region):
         if isinstance(needle, str):
             if needle in merchant_norm:
                 yield entry

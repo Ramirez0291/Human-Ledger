@@ -1,20 +1,8 @@
 #!/bin/sh
-# Run migrations, then start the server.
+# 启动前自动执行数据库迁移，使升级镜像即完成 schema 升级。
 set -e
 
 cd /app/backend
-
-# Generate SECRET_KEY once and keep it in the data volume.
-if [ -z "$SECRET_KEY" ]; then
-  KEY_FILE="${DATA_DIR:-/app/data}/.secret_key"
-  if [ ! -s "$KEY_FILE" ]; then
-    echo "[entrypoint] generating SECRET_KEY at $KEY_FILE"
-    python -c "import secrets;print(secrets.token_urlsafe(48))" > "$KEY_FILE"
-    chmod 600 "$KEY_FILE"
-  fi
-  SECRET_KEY="$(cat "$KEY_FILE")"
-  export SECRET_KEY
-fi
 
 echo "[entrypoint] applying database migrations..."
 python -m alembic upgrade head

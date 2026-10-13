@@ -24,7 +24,8 @@
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "prevPage": "Previous page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "reset": "Revert"
   },
   "setup": {
     "title": "First-time setup",
@@ -54,7 +55,8 @@
     "accounts": "Accounts",
     "settings": "Settings",
     "import": "Import",
-    "reports": "Reports"
+    "reports": "Reports",
+    "budget": "Budget"
   },
   "action": {
     "addTransaction": "Add transaction",
@@ -86,7 +88,13 @@
     "reconcileAlertDesc": "The computed balance differs from the balance you entered — usually a missing transaction.",
     "emptyTitle": "Create an account first",
     "emptyDesc": "You need at least one account. Add the ones you actually use: bank, credit card, PayPay, cash.",
-    "emptyAction": "Add an account"
+    "emptyAction": "Add an account",
+    "recentTitle": "Recent",
+    "recentEmpty": "Nothing recorded this month yet.",
+    "allTransactions": "All transactions",
+    "toReports": "Reports",
+    "emptyDesc_CN": "You need an account to start. Create the ones you use (WeChat Balance, Alipay balance, bank cards, credit cards, cash), or upload a WeChat or Alipay statement under Import and the accounts are created for you.",
+    "emptyAction_CN": "Import a WeChat / Alipay statement"
   },
   "txn": {
     "searchPlaceholder": "Search merchant or memo",
@@ -122,7 +130,9 @@
     "installmentTotal": "of",
     "installmentTotalAmount": "Total amount",
     "excludeFromAnalysis": "Exclude from monthly analysis",
-    "excludeFromAnalysisHint": "One-off large or unexpected spending (moving, a new laptop, a hospital stay…). Balances still include it; only the \"everyday spending\" in reports leaves it out."
+    "excludeFromAnalysisHint": "One-off large or unexpected spending (moving, a new laptop, a hospital stay…). Balances still include it; only the \"everyday spending\" in reports leaves it out.",
+    "clear": "Clear",
+    "quickSaved": "Saved: {{merchant}} ¥{{amount}}"
   },
   "transfer": {
     "from": "From",
@@ -131,7 +141,9 @@
     "feeHint": "e.g. overseas transfer fee. Recorded separately as a real expense.",
     "feeCategory": "Fee category",
     "errorSameAccount": "Pick two different accounts",
-    "explainer": "ATM withdrawals, top-ups, and card payments are transfers. They are excluded from income/expense totals so the same money is not counted twice."
+    "explainer": "ATM withdrawals, top-ups, and card payments are transfers. They are excluded from income/expense totals so the same money is not counted twice.",
+    "quickSaved": "Transferred ¥{{amount}}",
+    "explainer_CN": "Cash withdrawals, WeChat Balance top-ups and withdrawals, credit card repayments and moving money into Yu'e Bao / Lingqiantong are all transfers. Transfers aren't counted as income or spending — otherwise the same money would be counted twice."
   },
   "account": {
     "add": "Add account",
@@ -160,7 +172,13 @@
     "reconcileHint": "A positive difference suggests a missing income entry; negative suggests a missing expense.",
     "diffWarn": "off by {{amount}}",
     "emptyTitle": "No accounts yet",
-    "emptyDesc": "Add the ones you actually use: bank, credit card, PayPay, cash."
+    "emptyDesc": "Add the ones you actually use: bank, credit card, PayPay, cash.",
+    "setBalance": "Set balance",
+    "setBalanceExplainer": "Enter the balance your bank or payment app shows now. Everything is calculated from this amount onwards — no need to go back and fill in what you missed.",
+    "balanceSet": "Balance set to {{amount}}. Calculations continue from here.",
+    "balanceSetDiff": "That's {{amount}} different from what the records add up to — probably a few entries weren't recorded, and that's fine.",
+    "owedBalance": "Amount currently owed",
+    "emptyDesc_CN": "Create the ones you actually use: WeChat Balance, Alipay balance, bank cards, credit cards, cash. Or just import a WeChat or Alipay statement — accounts are created from its payment methods."
   },
   "category": {
     "title": "Categories",
@@ -186,7 +204,8 @@
     "about": "About",
     "database": "Database",
     "migration": "Migration",
-    "timezone": "Timezone"
+    "timezone": "Timezone",
+    "region": "Ledger region"
   },
   "ocr": {
     "title": "Screenshot recognition",
@@ -226,7 +245,17 @@
     "file_too_large": "File too large (max 5 MB)",
     "file_empty": "File is empty",
     "username_taken": "That username is already taken",
-    "registration_disabled": "Registration is disabled on this server"
+    "registration_disabled": "Registration is disabled on this server",
+    "budget_category_not_expense": "Budgets can only be set on expense categories",
+    "special_budget_not_found": "Special budget not found",
+    "date_to_before_date_from": "The end date can't be before the start date",
+    "backup_owner_only": "Only the administrator can download the full backup",
+    "account_ids_mismatch": "Files and accounts don't match — please pick the files again",
+    "account_required": "Please choose an account",
+    "invalid_ledger_mode": "Invalid bookkeeping style",
+    "csv_currency_mismatch": "The file's currency doesn't match the ledger, so nothing was imported.",
+    "unsupported_region": "Unsupported region",
+    "invalid_payment_accounts": "Invalid payment-method account mapping"
   },
   "milestone": {
     "done": "Done",
@@ -237,7 +266,7 @@
     "appendTitle": "Add to this batch",
     "pasteDesc": "Paste the text from a bank / card / PayPay screenshot, one item per line (long-press a screenshot to copy its text). Dates, amounts and merchants are recognised, de-duplicated and categorised for you to review. Paste several screens into one batch; overlapping rows are merged.",
     "text": "Screenshot text",
-    "textPlaceholder": "ライフ 新宿店\n842円\n26.09.02\n1回払い\n…",
+    "textPlaceholder": "ライフ此花伝法店\n842円\n26.09.02\n1回払い\n…",
     "statementMonth": "Set statement month",
     "statementMonthHint": "Used to infer the year when dates lack one (e.g. J-WEST's 6月13日). Not needed when dates are complete.",
     "parse": "Recognise",
@@ -267,7 +296,10 @@
     "sourceText": "Screenshot text",
     "rerouted": "\"{{file}}\" is a {{profile}} file, so it went into \"{{account}}\". In the wrong account nothing is detected as a duplicate, and card payments count as spending.",
     "accountMismatch": "\"{{file}}\" looks like a {{profile}} file, but \"{{account}}\" is selected and no account of the right type exists. Create one first, or change the account row by row below.",
-    "resultSkippedDuplicate": "Already in the ledger (skipped)"
+    "resultSkippedDuplicate": "Already in the ledger (skipped)",
+    "accountsCreated": "Created accounts: {{names}}. You can rename them or set opening balances on the Accounts page.",
+    "currencyMismatch": "Skipped “{{file}}”: amounts are in {{currency}}, the ledger is in {{ledger}}.",
+    "pasteDesc_CN": "Paste the text from your bank or payment app's statement screen, one line per row. Dates, amounts and merchants are recognized, duplicates removed and categories assigned before you review. You can paste several times into one batch; overlaps are merged."
   },
   "staging": {
     "title": "Review",
@@ -301,7 +333,11 @@
       "no_merchant": "no merchant",
       "orphan_amount": "orphan amount",
       "unknown": "skipped",
-      "paid_by_card": "Paid by credit card (appears on the card statement)"
+      "paid_by_card": "Paid by credit card (appears on the card statement)",
+      "failed": "Failed or closed payment",
+      "closed": "Closed (order cancelled, no net money movement)",
+      "zero_amount": "Zero amount (pay-later order placeholder)",
+      "refund_of_closed": "Refund of a closed order (excluded with it)"
     },
     "summaryCount": "{{selected}} / {{total}} selected",
     "summaryTransfer": "{{count}} transfers {{amount}}",
@@ -328,8 +364,8 @@
   },
   "csv": {
     "desc": "CSV statements downloaded from your bank or card issuer. SMBC bank statements, SMBC card, Rakuten Card (e-NAVI) and PayPay transaction history are detected automatically; other formats need column mapping. Select several files at once (e.g. several months) to import into one batch.",
-    "files": "CSV files",
-    "filesHint": "Shift_JIS and UTF-8 are detected automatically.",
+    "files": "CSV / Excel files",
+    "filesHint": "UTF-8, GBK or Shift_JIS CSV and xlsx, detected automatically.",
     "unknownFormat": "Unknown format",
     "rows": "{{count}} rows",
     "statement": "Statement {{month}}",
@@ -349,7 +385,20 @@
     "hasHeader": "First row is a header",
     "positiveIsExpense": "Positive amounts are expenses",
     "import": "Import {{count}} rows",
-    "removeFile": "Remove {{name}}"
+    "removeFile": "Remove {{name}}",
+    "accountFor": "Account for \"{{name}}\"",
+    "kindMismatch": "looks like a {{kind}} file",
+    "kindMismatchHint": "The file format doesn't match the account type. In the wrong account duplicates can't be detected and card payments count as spending.",
+    "perFileAccountHint": "Each file can go into its own account. Defaults come from your previous choices and the file format.",
+    "multiAccount": "Split by payment method",
+    "currencyMismatch": "Currency mismatch ({{currency}})",
+    "currencyMismatchHint": "This file is in {{currency}} but the ledger is in {{ledger}}, so it will be skipped. Use a ledger for that region instead.",
+    "methodsTitle": "Payment method → account",
+    "methodsDesc": "WeChat and Alipay statements record where each payment's money came from. Card payments go to that card; wallet balance activity goes to the wallet account, and the same card maps to the same account in both statements. Unmatched methods get a new account, and your choices are remembered next time.",
+    "methodRows": "{{count}} rows",
+    "newAccount": "Create “{{name}}” ({{type}})",
+    "methodFor": "Account for “{{name}}”",
+    "desc_CN": "WeChat Pay statements (Me → Services → Wallet → Bills → FAQ → Download bills; xlsx or CSV) and Alipay transaction records (Me → Bills → … → Transaction record certificate → For personal reconciliation; the CSV inside the emailed zip) are recognized automatically, with Balance and linked bank cards booked to separate accounts. For other bank statements, tell us what each column means. Pick several files at once to import them into one batch."
   },
   "reports": {
     "expense": "Expense",
@@ -424,7 +473,8 @@
     "desc": "A full backup contains the database and uploaded screenshots and can be restored as-is on another machine. CSV export is for analysing in Excel or moving to another app.",
     "download": "Download full backup",
     "exportAll": "Export all transactions as CSV",
-    "restoreHint": "Restore: stop the server, then run in the backend directory"
+    "restoreHint": "Restore: stop the server, then run in the backend directory",
+    "descMember": "Export all of your own transactions as CSV. The full database backup contains every user's data on this server, so only the administrator can download it."
   },
   "register": {
     "title": "Sign up",
@@ -450,5 +500,150 @@
     "showAll": "Show all {{count}}",
     "showLess": "Show less",
     "overlapLater": "Overlaps with the later import {{with}}; handle it there"
+  },
+  "budget": {
+    "addSpecial": "Add special budget",
+    "editSpecial": "Edit special budget",
+    "editDefaults": "Set monthly budget",
+    "setUp": "Set a budget",
+    "viewAll": "View budget",
+    "spent": "Spent",
+    "budget": "Budget",
+    "projected": "Month-end forecast",
+    "dailyAllowance": "Left per day",
+    "dailyAllowanceShort": "{{amount}} left per day",
+    "daysLeft": "{{count}} days left",
+    "range": "Range {{low}} – {{high}}",
+    "baseplusExtra": "Base {{base}} + special {{extra}}",
+    "flaggedIncluded": "incl. {{amount}} one-off",
+    "basis": "Forecast from your last {{count}} months",
+    "basisLinear": "Less than a full month of records — extrapolating the current pace",
+    "paceSame": "Spending at your usual pace",
+    "paceFaster": "{{pct}}% faster than usual",
+    "paceSlower": "{{pct}}% slower than usual",
+    "say": {
+      "none": "At your current habits you'll spend about {{projected}} this month. Set a budget to see early whether you'll go over.",
+      "onTrack": "At your current habits you'll spend about {{projected}} and have {{amount}} left.",
+      "atRisk": "You're heading for {{projected}} — only {{amount}} under budget. Worth keeping an eye on.",
+      "likelyExceed": "At your current habits you'll likely go {{amount}} over. Spending {{cut}} less per day keeps you on budget.",
+      "willExceed": "Even the optimistic estimate is {{amount}} over. Cut {{cut}} per day, or add a special budget for this month.",
+      "over": "You're {{amount}} over budget.",
+      "pastOk": "You spent {{spent}} this month — within budget, {{amount}} left.",
+      "pastOver": "You spent {{spent}} this month — {{amount}} over budget."
+    },
+    "level": {
+      "none": "Not set",
+      "on_track": "On track",
+      "at_risk": "Watch",
+      "likely_exceed": "May exceed",
+      "will_exceed": "Will exceed",
+      "over": "Over"
+    },
+    "chartLabel": "Cumulative spending this month vs budget",
+    "budgetLine": "Budget {{amount}}",
+    "dayN": "Day {{day}}",
+    "actualCum": "Spent so far",
+    "forecastCum": "Forecast",
+    "overBy": "{{amount}} over budget",
+    "leftBy": "{{amount}} under budget",
+    "legendActual": "Spent (cumulative)",
+    "legendForecast": "Forecast at your usual pace",
+    "historyTitle": "Recent months",
+    "monthSuffix": "",
+    "categoriesTitle": "Category budgets",
+    "catProjected": "Forecast {{amount}}",
+    "includesExtra": "incl. special {{amount}}",
+    "unbudgeted": "{{amount}} spent this month in categories without a budget.",
+    "defaultsTitle": "Monthly budget",
+    "defaultsDesc": "Applies every month. Set just a total, or only the categories you care about.",
+    "emptyDesc": "No budget yet. Press \"Fill from my habits\", review and adjust, then save.",
+    "fillSuggestion": "Fill from my habits",
+    "suggestionBasis": "Filled with the median of your last {{count}} months (one-offs excluded). Adjust before saving.",
+    "suggestionNone": "Less than a full month of records — no suggestion yet.",
+    "totalBudget": "Total per month",
+    "notSet": "None",
+    "typical": "usually {{amount}}",
+    "saved": "Saved",
+    "categoriesExceedTotal": "Categories add up to {{amount}}, more than the total budget.",
+    "specialsTitle": "Special budgets",
+    "specialsDesc": "A holiday trip, a bonus, a little treat — add extra money for a date range. That month's budget goes up, and you can see how much of the extra you've used.",
+    "specialsEmpty": "No special budgets this month.",
+    "otherSpecials": "Special budgets in other months ({{count}})",
+    "allocated": "{{amount}} this month",
+    "confirmDeleteSpecial": "Delete special budget \"{{name}}\"?",
+    "state": {
+      "upcoming": "Upcoming",
+      "active": "Active",
+      "ended": "Ended"
+    },
+    "presets": "Quick fill",
+    "kind": "Occasion",
+    "kinds": {
+      "holiday": "Holiday",
+      "bonus": "Bonus",
+      "treat": "Treat",
+      "other": "Other"
+    },
+    "preset": {
+      "gw": "Golden Week",
+      "obon": "Obon",
+      "newYear": "New Year holidays",
+      "bonus": "Got a bonus",
+      "weekend": "Weekend treat",
+      "today": "Treat myself today",
+      "springFestival": "Spring Festival",
+      "mayDay": "May Day holiday",
+      "nationalDay": "National Day holiday",
+      "double11": "Singles' Day (11.11)"
+    },
+    "specialName": "Name",
+    "extraAmount": "Extra amount",
+    "from": "From",
+    "to": "To",
+    "specialCategory": "Only for a category (optional)",
+    "specialCategoryHint": "Leave empty to add to the month's total; pick one to also raise that category's budget.",
+    "anyCategory": "Any category",
+    "errorName": "Please enter a name",
+    "errorRange": "The end date can't be before the start date"
+  },
+  "mode": {
+    "title": "Bookkeeping style",
+    "relaxed": "Relaxed (recommended)",
+    "relaxedDesc": "Missing a few entries is normal. Balances start from the last real balance you entered (or the one in an imported statement); cards stop at 0 when paid off, cash and e-wallets never go below 0, and no reconciliation warnings are shown.",
+    "strict": "Compliance mode",
+    "strictDesc": "Balances must equal the opening balance plus every transaction, and every mismatch is pursued. The further off the books are, the tenser the interface gets — fill in missing entries and reconcile to calm things down."
+  },
+  "compliance": {
+    "calm": "Books reconciled",
+    "badge1": "Notice",
+    "badge2": "Internal audit",
+    "badge3": "Audit warning",
+    "badge4": "State of emergency",
+    "level1": "A small {{amount}} discrepancy. Probably fine… right?",
+    "level2": "Internal audit: the books are off by {{amount}}. Please reconcile soon.",
+    "level3": "The books are off by {{amount}} — {{pct}} of your monthly spending.",
+    "level4": "Books out of control: {{amount}} off ({{pct}} of monthly spending).",
+    "gapsOnly": "{{count}} accounts have never been reconciled (or not for a long time). The ledger is uneasy.",
+    "quip0": "Accounting is watching.",
+    "quip1": "The auditor has requested every statement.",
+    "quip2": "Please suspend all non-essential spending.",
+    "quip3": "That money went somewhere.",
+    "quip4": "It's not too late to reconcile.",
+    "details": "Details ({{count}})",
+    "hide": "Hide",
+    "goReconcile": "Reconcile",
+    "status": {
+      "diff": "Mismatch",
+      "unaudited": "Unaudited",
+      "stale": "Stale",
+      "ok": "OK"
+    },
+    "daysAgo": "{{count}} days ago"
+  },
+  "region": {
+    "label": "Ledger region",
+    "hint": "Sets the currency, starter categories and merchant dictionary. It can't be changed later — the same number means a different amount in another currency.",
+    "JP": "Japan (JPY)",
+    "CN": "China (CNY)"
   }
 }

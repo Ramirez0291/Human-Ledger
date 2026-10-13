@@ -5,13 +5,23 @@ import { useLedger } from '../context/LedgerContext'
 import { todayISO } from '../lib/format'
 import { CategorySelect } from './CategorySelect'
 import { MoneyInput } from './MoneyInput'
+import { regionContext } from '../lib/region'
 
 interface Props {
   onSaved: () => void
-  onCancel: () => void
+  onCancel?: () => void
+  /** 首页左栏常驻：保存后只清金额与备注，账户和日期留着 */
+  quick?: boolean
 }
 
-export function TransferForm({ onSaved, onCancel }: Props) {
+/**
+ * 账户间转账。
+ *
+ * 这是一个独立表单而非普通记账的一个方向选项，因为转账在数据上是**成对**的
+ * 两条记录，且不计入收支统计。典型用途：ATM 取现、PayPay 充值、
+ * 信用卡还款、交通 IC 充值。
+ */
+export function TransferForm({ onSaved, onCancel, quick = false }: Props) {
   const { t } = useTranslation()
   const { accounts, categories } = useLedger()
 
@@ -24,6 +34,7 @@ export function TransferForm({ onSaved, onCancel }: Props) {
   const [feeCategoryId, setFeeCategoryId] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [lastSaved, setLastSaved] = useState('')
 
   useEffect(() => {
     if (accounts.length >= 1 && fromId === '') setFromId(accounts[0].id)
@@ -58,6 +69,12 @@ export function TransferForm({ onSaved, onCancel }: Props) {
         fee,
         fee_category_id: fee > 0 ? feeCategoryId : null,
       })
+      if (quick) {
+        setLastSaved(t('transfer.quickSaved', { amount: amount.toLocaleString('en-US') }))
+        setAmount(0)
+        setMemo('')
+        setFee(0)
+      }
       onSaved()
     } catch (err) {
       setError(err instanceof ApiError ? t(`error.${err.detail}`, t('common.error')) : t('common.error'))
@@ -70,7 +87,7 @@ export function TransferForm({ onSaved, onCancel }: Props) {
     <form onSubmit={submit} className="txn-form">
       {error && <div className="alert error">{error}</div>}
 
-      <p className="alert info">{t('transfer.explainer')}</p>
+      {!quick && <p className="alert info">{t('transfer.explainer', { context: regionContext() })}</p>}
 
       <div className="field">
         <label htmlFor="tr-amount">{t('form.amount')}</label>
@@ -130,9 +147,12 @@ export function TransferForm({ onSaved, onCancel }: Props) {
       </div>
 
       <div className="form-actions">
-        <button type="button" className="btn-ghost" onClick={onCancel}>
-          {t('common.cancel')}
-        </button>
+        {quick && lastSaved && <span className="quick-saved">✓ {lastSaved}</span>}
+        {onCancel && !quick && (
+          <button type="button" className="btn-ghost" onClick={onCancel}>
+            {t('common.cancel')}
+          </button>
+        )}
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? t('common.saving') : t('common.save')}
         </button>

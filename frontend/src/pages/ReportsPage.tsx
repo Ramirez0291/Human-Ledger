@@ -19,19 +19,21 @@ import { useLedger } from '../context/LedgerContext'
 import {
   currentYearMonth,
   formatDateShort,
-  formatJPY,
+  formatMoney,
   formatPercent,
   formatSigned,
   formatYearMonth,
   monthRange,
+  parseAmount,
   shiftYearMonth,
   todayISO,
 } from '../lib/format'
+import { analysisCaps } from '../lib/region'
 
 const TREND_MONTHS = 12
-const THRESHOLDS = [10000, 30000, 50000, 100000]
 const STORAGE_KEY = 'reports.analysis.v1'
 
+/** 分析口径：哪些开支不算进「日常开支」。按浏览器记住，下次打开还是这套 */
 interface Analysis {
   excludeFlagged: boolean
   maxSingle: number | null
@@ -45,6 +47,7 @@ function loadAnalysis(): Analysis {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) return { ...DEFAULT_ANALYSIS, ...(JSON.parse(raw) as Partial<Analysis>) }
   } catch {
+    /* 隐私模式等拿不到存储时用默认值 */
   }
   return DEFAULT_ANALYSIS
 }
@@ -76,6 +79,7 @@ export function ReportsPage() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis))
     } catch {
+      /* 同上 */
     }
   }, [analysis])
 
@@ -116,6 +120,7 @@ export function ReportsPage() {
     return () => clearTimeout(timer)
   }, [load, query])
 
+  // 月份或筛选一变，下钻与选中的日期就失效
   useEffect(() => {
     setDrill(null)
   }, [ym, filters, side])
@@ -219,6 +224,7 @@ export function ReportsPage() {
           ))}
         </select>
 
+        {/* ---- 分析口径：主动除外大额 / 意外开支 ---- */}
         <div className="analysis-bar">
           <span className="analysis-label">{t('reports.analysisLabel')}</span>
           <button
@@ -241,7 +247,7 @@ export function ReportsPage() {
           >
             {t('reports.noLimit')}
           </button>
-          {THRESHOLDS.map((v) => (
+          {analysisCaps().map((v) => (
             <button
               key={v}
               type="button"
@@ -249,19 +255,19 @@ export function ReportsPage() {
               aria-pressed={analysis.maxSingle === v}
               onClick={() => setAnalysis((a) => ({ ...a, maxSingle: v }))}
             >
-              ≤ {formatJPY(v, locale)}
+              ≤ {formatMoney(v, locale)}
             </button>
           ))}
           <form
             className="chip-input"
             onSubmit={(e) => {
               e.preventDefault()
-              const n = Number(customThreshold.replace(/[^\d]/g, ''))
+              const n = parseAmount(customThreshold)
               if (n > 0) setAnalysis((a) => ({ ...a, maxSingle: n }))
             }}
           >
             <input
-              inputMode="numeric"
+              inputMode="decimal"
               placeholder={t('reports.customLimit')}
               value={customThreshold}
               onChange={(e) => setCustomThreshold(e.target.value)}
@@ -299,9 +305,9 @@ export function ReportsPage() {
           {excludingSomething && (
             <div className="analysis-notice">
               {t('reports.excludedNotice', {
-                amount: formatJPY(overview.excluded.expense, locale),
+                amount: formatMoney(overview.excluded.expense, locale),
                 count: overview.excluded.count,
-                raw: formatJPY(overview.raw_totals.expense, locale),
+                raw: formatMoney(overview.raw_totals.expense, locale),
               })}
             </div>
           )}
@@ -397,7 +403,7 @@ export function ReportsPage() {
                       {drill.icon && <span aria-hidden="true">{drill.icon} </span>}
                       {drill.name}
                     </span>
-                    <span className="mono">{formatJPY(drill.amount, locale)}</span>
+                    <span className="mono">{formatMoney(drill.amount, locale)}</span>
                     <span className="muted">{formatPercent(drill.share, locale)}</span>
                   </div>
                   <ul className="rank-list">
@@ -414,7 +420,7 @@ export function ReportsPage() {
                         <span className="rank-bar">
                           <span style={{ width: `${c.share * 100}%`, background: drill.color ?? 'var(--accent)' }} />
                         </span>
-                        <span className="mono rank-amount">{formatJPY(c.amount, locale)}</span>
+                        <span className="mono rank-amount">{formatMoney(c.amount, locale)}</span>
                         <span className="muted rank-share">{formatPercent(c.share, locale)}</span>
                       </li>
                     ))}
@@ -427,7 +433,7 @@ export function ReportsPage() {
 
               {breakdown && breakdown.uncategorized > 0 && !drill && (
                 <p className="hint" style={{ marginTop: 12 }}>
-                  {t('reports.uncategorized', { amount: formatJPY(breakdown.uncategorized, locale) })}
+                  {t('reports.uncategorized', { amount: formatMoney(breakdown.uncategorized, locale) })}
                 </p>
               )}
               {side === 'expense' && !drill && breakdown && breakdown.total > 0 && (
@@ -458,7 +464,7 @@ export function ReportsPage() {
                             {e.over_threshold && !e.exclude_from_analysis && ` · ${t('reports.overThreshold')}`}
                           </span>
                         </div>
-                        <span className="mono large-amount">{formatJPY(e.amount, locale)}</span>
+                        <span className="mono large-amount">{formatMoney(e.amount, locale)}</span>
                         <ExcludeSwitch
                           excluded={e.exclude_from_analysis}
                           onChange={(v) => void toggleExclude(e.id, v)}
@@ -505,7 +511,7 @@ export function ReportsPage() {
                     <span className="rank-bar">
                       <span style={{ width: `${maxMerchant ? (m.amount / maxMerchant) * 100 : 0}%` }} />
                     </span>
-                    <span className="mono rank-amount">{formatJPY(m.amount, locale)}</span>
+                    <span className="mono rank-amount">{formatMoney(m.amount, locale)}</span>
                   </li>
                 ))}
               </ol>
@@ -538,9 +544,9 @@ export function ReportsPage() {
                         <span className="dot" style={{ background: a.color ?? 'var(--border-strong)' }} />
                         {a.name}
                       </td>
-                      <td className={`num mono ${a.balance < 0 ? 'expense' : ''}`}>{formatJPY(a.balance, locale)}</td>
-                      <td className="num mono">{a.month_income ? formatJPY(a.month_income, locale) : '—'}</td>
-                      <td className="num mono">{a.month_expense ? formatJPY(a.month_expense, locale) : '—'}</td>
+                      <td className={`num mono ${a.balance < 0 ? 'expense' : ''}`}>{formatMoney(a.balance, locale)}</td>
+                      <td className="num mono">{a.month_income ? formatMoney(a.month_income, locale) : '—'}</td>
+                      <td className="num mono">{a.month_expense ? formatMoney(a.month_expense, locale) : '—'}</td>
                       <td className={`num mono ${a.month_delta < 0 ? 'expense' : a.month_delta > 0 ? 'income' : ''}`}>
                         {a.month_delta ? formatSigned(a.month_delta, locale) : '—'}
                       </td>
@@ -561,6 +567,7 @@ export function ReportsPage() {
 
 // --------------------------------------------------------------------------
 
+/** 「计入 / 除外」开关。开 = 计入分析 */
 function ExcludeSwitch({ excluded, onChange }: { excluded: boolean; onChange: (excluded: boolean) => void }) {
   const { t } = useTranslation()
   return (
@@ -583,6 +590,7 @@ function ExcludeSwitch({ excluded, onChange }: { excluded: boolean; onChange: (e
   )
 }
 
+/** 选中某天后列出当天的支出，可逐笔除外 */
 function DayPanel({
   date,
   filters,
@@ -648,7 +656,7 @@ function DayPanel({
                   {x.category_name && ` · ${x.category_name}`}
                 </span>
               </div>
-              <span className="mono large-amount">{formatJPY(x.amount, locale)}</span>
+              <span className="mono large-amount">{formatMoney(x.amount, locale)}</span>
               <ExcludeSwitch
                 excluded={x.exclude_from_analysis}
                 onChange={async (v) => {
@@ -685,13 +693,13 @@ function Kpi({
   return (
     <div className="stat">
       <span className="stat-label">{label}</span>
-      <span className={`stat-value ${cls}`}>{formatJPY(value, locale)}</span>
+      <span className={`stat-value ${cls}`}>{formatMoney(value, locale)}</span>
       <span className={`stat-delta ${good === null ? '' : good ? 'good' : 'bad'}`}>
         {diff === 0 ? (
           t('reports.sameAsPrev')
         ) : (
           <>
-            {diff > 0 ? '▲' : '▼'} {formatJPY(Math.abs(diff), locale)}
+            {diff > 0 ? '▲' : '▼'} {formatMoney(Math.abs(diff), locale)}
             {prev !== 0 && <span className="muted"> ({formatPercent(Math.abs(diff) / Math.abs(prev), locale)})</span>}
             <span className="muted"> {t('reports.vsPrev')}</span>
           </>
@@ -701,6 +709,10 @@ function Kpi({
   )
 }
 
+/**
+ * 大额支出里像「钱换了个账户」的那几笔：信用卡还款、ATM 取现、充值、转入证券。
+ * 卡上的每笔消费已经各记一次，还款再算支出就是双计，所以给一个就地改记转账的入口。
+ */
 function TransferFix({
   item,
   accounts,

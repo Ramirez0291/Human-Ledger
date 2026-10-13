@@ -7,13 +7,20 @@ import { CategorySelect } from './CategorySelect'
 import { MoneyInput } from './MoneyInput'
 
 interface Props {
+  /** 传入即为编辑模式 */
   existing?: Transaction | null
   onSaved: () => void
-  onCancel: () => void
+  onCancel?: () => void
+  /** 编辑时提供删除入口。窄屏没有行内操作按钮，删除只能从这里走 */
   onDelete?: () => void
+  /**
+   * 连续记账（首页左栏常驻）：保存后清空金额 / 商家 / 类别，保留日期、账户与收支方向，
+   * 光标回到金额，下一笔接着记
+   */
+  quick?: boolean
 }
 
-export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props) {
+export function TransactionForm({ existing, onSaved, onCancel, onDelete, quick = false }: Props) {
   const { t } = useTranslation()
   const { accounts, categories } = useLedger()
 
@@ -37,13 +44,18 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
   const [autoFilled, setAutoFilled] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [lastSaved, setLastSaved] = useState('')
+  const formRef = useRef<HTMLFormElement>(null)
 
+  // 类别是否由用户手动指定过。手动指定后就不再被自动预测覆盖。
   const categoryTouched = useRef(!!existing?.category_id)
 
+  // 默认选中第一个账户
   useEffect(() => {
     if (accountId === '' && accounts.length) setAccountId(accounts[0].id)
   }, [accounts, accountId])
 
+  // 商家名变化时取补全候选，并按商家记忆预测类别
   useEffect(() => {
     const q = merchant.trim()
     if (!q) {
@@ -101,6 +113,10 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
       } else {
         await api.createTransaction(payload)
       }
+      if (quick && !existing) {
+        setLastSaved(t('form.quickSaved', { merchant: payload.merchant_raw || t('txn.noMerchant'), amount: amount.toLocaleString('en-US') }))
+        resetForNext()
+      }
       onSaved()
     } catch (err) {
       setError(err instanceof ApiError ? t(`error.${err.detail}`, t('common.error')) : t('common.error'))
@@ -109,6 +125,24 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
     }
   }
 
+  function resetForNext() {
+    setAmount(0)
+    setMerchant('')
+    setMemo('')
+    setCategoryId(null)
+    setAutoFilled(false)
+    setExcludeFromAnalysis(false)
+    setShowInstallment(false)
+    setInstCurrent('')
+    setInstTotal('')
+    setInstTotalAmount(0)
+    categoryTouched.current = false
+    // 金额框是第一个输入框：回到它，下一笔直接敲数字
+    setTimeout(() => formRef.current?.querySelector<HTMLInputElement>('#txn-amount')?.focus(), 0)
+  }
+
+  // 转账的两条腿必须保持一致，金额与方向不允许单独改（后端也会拒绝）。
+  // 此处只展示信息与删除入口，避免用户填了半天再被拒。
   if (existing?.transfer_group_id) {
     return (
       <div className="txn-form">
@@ -133,16 +167,18 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
               {t('common.delete')}
             </button>
           )}
-          <button type="button" className="btn-primary" onClick={onCancel}>
-            {t('common.close')}
-          </button>
+          {onCancel && (
+            <button type="button" className="btn-primary" onClick={onCancel}>
+              {t('common.close')}
+            </button>
+          )}
         </div>
       </div>
     )
   }
 
   return (
-    <form onSubmit={submit} className="txn-form">
+    <form onSubmit={submit} className="txn-form" ref={formRef}>
       {error && <div className="alert error">{error}</div>}
 
       <div className="segmented" role="group">
@@ -300,9 +336,18 @@ export function TransactionForm({ existing, onSaved, onCancel, onDelete }: Props
             {t('common.delete')}
           </button>
         )}
-        <button type="button" className="btn-ghost" onClick={onCancel}>
-          {t('common.cancel')}
-        </button>
+        {quick && lastSaved && <span className="quick-saved">✓ {lastSaved}</span>}
+        {quick ? (
+          <button type="button" className="btn-ghost" onClick={resetForNext}>
+            {t('form.clear')}
+          </button>
+        ) : (
+          onCancel && (
+            <button type="button" className="btn-ghost" onClick={onCancel}>
+              {t('common.cancel')}
+            </button>
+          )
+        )}
         <button type="submit" className="btn-primary" disabled={busy}>
           {busy ? t('common.saving') : t('common.save')}
         </button>

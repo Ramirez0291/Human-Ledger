@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.routers import (
     accounts,
     auth,
+    budgets,
     categories,
     imports,
     meta,
@@ -22,5 +23,8 @@ api_router.include_router(transactions.router)
 api_router.include_router(imports.router)
 api_router.include_router(rules.router)
 api_router.include_router(reports.router)
+api_router.include_router(budgets.router)
 
-#   M4  budgets / recurring
+# 后续里程碑挂载点：
+#   M2  imports 增加截图上传（OCR）与 CSV 来源
+#   M4  recurring（budgets 已挂载）

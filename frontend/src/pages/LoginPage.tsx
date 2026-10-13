@@ -6,6 +6,7 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 interface Props {
   onDone: (user: User) => void
+  /** 传了就显示「注册」入口（后端 allow_registration 为真时） */
   onRegister?: () => void
 }
 

@@ -1,4 +1,9 @@
+/* ==========================================================================
+   报表页与图表
+   ========================================================================== */
 
+/* 图表只用三种序列色：收入 / 支出 沿用全站语义色，结余用正文墨色。
+   坐标轴与网格必须比数据弱，所以单独给一档更淡的颜色。 */
 :root {
   --chart-grid: rgba(15, 23, 42, 0.07);
   --chart-axis: rgba(15, 23, 42, 0.22);
@@ -11,6 +16,7 @@
     --chart-grid: rgba(255, 255, 255, 0.07);
     --chart-axis: rgba(255, 255, 255, 0.22);
     --chart-net: #e8edf5;
+    /* 深色下柱子与折线带一点霓虹晕，只用 filter 不改几何 */
     --chart-glow: drop-shadow(0 0 6px rgba(34, 211, 238, 0.35));
   }
 }
@@ -42,6 +48,8 @@
 .stat-delta.bad {
   color: var(--danger);
 }
+
+/* ---- 通用图表容器 ---- */
 
 .chart {
   position: relative;
@@ -116,6 +124,7 @@
 
 .chart-marker {
   fill: var(--chart-net);
+  /* 2px 底色描边，压在柱子上也分得开——必须用不透明色，玻璃色描不出边 */
   stroke: var(--surface-solid);
   stroke-width: 2;
   pointer-events: none;
@@ -199,6 +208,8 @@
 .swatch.net {
   background: var(--chart-net);
 }
+
+/* ---- 环形图 ---- */
 
 .report-grid {
   display: grid;
@@ -289,6 +300,8 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- 下钻与排行 ---- */
+
 .drill {
   margin-top: 8px;
 }
@@ -375,6 +388,8 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- 账户表 ---- */
+
 .table-scroll {
   overflow-x: auto;
   margin-top: 8px;
@@ -414,6 +429,8 @@
   border-bottom: none;
 }
 
+/* ---- 备份 ---- */
+
 .backup-actions {
   display: flex;
   flex-wrap: wrap;
@@ -437,6 +454,10 @@
     display: none;
   }
 }
+
+/* ==========================================================================
+   分析口径（除外大额 / 意外开支）与图表交互
+   ========================================================================== */
 
 .small {
   font-size: 0.8125rem;
@@ -528,6 +549,8 @@
   border-radius: var(--radius-sm);
 }
 
+/* ---- 图例：可点的开关 ---- */
+
 .chart-legend.interactive {
   gap: 6px;
   margin: 0 0 6px;
@@ -575,6 +598,8 @@
   background: var(--danger);
   opacity: 0.5;
 }
+
+/* ---- 斜纹：被除外的部分 ---- */
 
 .hatch-expense.hatch-bg {
   fill: var(--danger-soft);
@@ -697,6 +722,8 @@
   color: var(--ok);
 }
 
+/* ---- 大额支出 / 当日列表 ---- */
+
 .large-list {
   list-style: none;
   margin: 8px 0 0;
@@ -760,6 +787,8 @@
   flex: 1;
 }
 
+/* ---- 开关 ---- */
+
 .switch {
   display: inline-flex;
   flex: none;
@@ -811,6 +840,8 @@
   outline-offset: 2px;
   border-radius: 999px;
 }
+
+/* ---- 可点的行 ---- */
 
 .rank-list li.clickable,
 .report-table tr.clickable {
@@ -893,6 +924,8 @@
   border-radius: 999px;
 }
 
+/* ---- 大额支出：改记转账 ---- */
+
 .large-list li {
   flex-wrap: wrap;
 }
@@ -936,6 +969,8 @@
 .btn-link:hover {
   text-decoration: underline;
 }
+
+/* ---- 导入记录 ---- */
 
 .history-list {
   list-style: none;

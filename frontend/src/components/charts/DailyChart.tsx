@@ -1,13 +1,14 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DailyReport } from '../../api/client'
-import { formatCompactYen, formatJPY } from '../../lib/format'
+import { formatCompactMoney, formatMoney } from '../../lib/format'
 import { BarPath, HatchPattern, niceScale, slotFromPointer } from './chartUtils'
 import { useWidth } from './useWidth'
 
 interface Props {
   data: DailyReport
   locale: string
+  /** 当月的「今天」是几号；非当月传 null，累计线画满整月 */
   today: number | null
   selectedDay: number | null
   onPickDay: (day: number | null) => void
@@ -16,6 +17,14 @@ interface Props {
 const HEIGHT = 220
 const PAD = { top: 14, right: 8, bottom: 24, left: 48 }
 
+/**
+ * 本月每日支出。两种视图（同一根轴只放一种量，不做双轴）：
+ *
+ * - 每日：柱子是当天支出，被除外的部分用斜纹叠在上面
+ * - 累计：本月累计 vs 上月同期累计。回答「这个月花得比上个月快还是慢」
+ *
+ * 点一天在下方列出当天的交易，可以逐笔标记除外。
+ */
 export function DailyChart({ data, locale, today, selectedDay, onPickDay }: Props) {
   const { t } = useTranslation()
   const [ref, width] = useWidth<HTMLDivElement>()
@@ -33,8 +42,10 @@ export function DailyChart({ data, locale, today, selectedDay, onPickDay }: Prop
       b += data.previous[i]?.expense ?? 0
       return { day: d.day, current: a, previous: b }
     })
+    // 上月比本月长的那几天（31 日）不参与同期比较
   }, [data])
 
+  // 本月画到今天为止，之后是未来
   const lastDay = today ?? n
   const paceDay = Math.min(lastDay, n)
   const pace = cum[paceDay - 1]
@@ -89,7 +100,7 @@ export function DailyChart({ data, locale, today, selectedDay, onPickDay }: Prop
           <span className={`pace ${pace.current > pace.previous ? 'bad' : 'good'}`}>
             {t(pace.current > pace.previous ? 'reports.paceFaster' : 'reports.paceSlower', {
               day: paceDay,
-              amount: formatJPY(Math.abs(pace.current - pace.previous), locale),
+              amount: formatMoney(Math.abs(pace.current - pace.previous), locale),
             })}
           </span>
         )}
@@ -120,7 +131,7 @@ export function DailyChart({ data, locale, today, selectedDay, onPickDay }: Prop
                 className={v === 0 ? 'chart-baseline' : 'chart-grid'}
               />
               <text x={PAD.left - 6} y={y(v) + 4} className="chart-tick" textAnchor="end">
-                {formatCompactYen(v, locale)}
+                {formatCompactMoney(v, locale)}
               </text>
             </g>
           ))}
@@ -199,21 +210,21 @@ export function DailyChart({ data, locale, today, selectedDay, onPickDay }: Prop
           <strong>{dayLabel(data.year_month, focused.day, locale)}</strong>
           <span>
             <i className="swatch expense" /> {t('reports.expense')}
-            <b>{formatJPY(focused.expense, locale)}</b>
+            <b>{formatMoney(focused.expense, locale)}</b>
           </span>
           {focused.excluded > 0 && (
             <span>
               <i className="swatch excluded" /> {t('reports.excludedSeries')}
-              <b>{formatJPY(focused.excluded, locale)}</b>
+              <b>{formatMoney(focused.excluded, locale)}</b>
             </span>
           )}
           <span>
             <i className="swatch expense-soft" /> {t('reports.cumulative')}
-            <b>{formatJPY(cum[focus].current, locale)}</b>
+            <b>{formatMoney(cum[focus].current, locale)}</b>
           </span>
           <span>
             <i className="swatch prev" /> {t('reports.prevSameDay')}
-            <b>{formatJPY(cum[focus].previous, locale)}</b>
+            <b>{formatMoney(cum[focus].previous, locale)}</b>
           </span>
           {hover !== null && <small>{t('reports.clickForDay')}</small>}
         </div>

@@ -5,7 +5,9 @@ import { api, type AppStatus, type User } from './api/client'
 import { AppShell } from './components/AppShell'
 import { LedgerProvider } from './context/LedgerContext'
 import { applyLocale } from './i18n'
+import { setLedgerRegion } from './lib/region'
 import { AccountsPage } from './pages/AccountsPage'
+import { BudgetPage } from './pages/BudgetPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ImportPage } from './pages/ImportPage'
@@ -25,8 +27,11 @@ export default function App() {
     setFailed(false)
     try {
       const s = await api.status()
+      // 金额的币种与小数位跟着账本走，必须在渲染任何金额之前设好
+      setLedgerRegion(s.user)
       setStatus(s)
       setUser(s.user)
+      // 已登录用户的语言偏好存在后端，优先于浏览器检测结果
       if (s.user?.locale) applyLocale(s.user.locale)
     } catch {
       setFailed(true)
@@ -41,6 +46,7 @@ export default function App() {
     (locale: string) => {
       if (!user) return
       void api.updateLocale(locale).catch(() => {
+        /* 语言偏好持久化失败不影响本次切换，忽略 */
       })
     },
     [user],
@@ -57,7 +63,7 @@ export default function App() {
       <div className="center-screen">
         <div className="auth-card">
           <h2>{t('common.error')}</h2>
-          <p className="subtitle">Cannot reach the backend.</p>
+          <p className="subtitle">无法连接到后端服务 / Cannot reach the backend.</p>
           <button className="btn-primary" style={{ marginTop: 20 }} onClick={() => void load()}>
             {t('common.retry')}
           </button>
@@ -77,7 +83,10 @@ export default function App() {
   if (status.needs_setup) {
     return (
       <SetupPage
+        regions={status.supported_regions}
+        defaultRegion={status.default_region}
         onDone={(u) => {
+          setLedgerRegion(u)
           setUser(u)
           void load()
         }}
@@ -90,8 +99,11 @@ export default function App() {
       return (
         <SetupPage
           mode="register"
+          regions={status.supported_regions}
+          defaultRegion={status.default_region}
           onBack={() => setAuthView('login')}
           onDone={(u) => {
+            setLedgerRegion(u)
             setUser(u)
             applyLocale(u.locale)
             void load()
@@ -103,6 +115,7 @@ export default function App() {
       <LoginPage
         onRegister={status.allow_registration ? () => setAuthView('register') : undefined}
         onDone={(u) => {
+          setLedgerRegion(u)
           setUser(u)
           applyLocale(u.locale)
           void load()
@@ -123,6 +136,7 @@ export default function App() {
             <Route path="/import" element={<ImportPage />} />
             <Route path="/import/:batchId" element={<ImportPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/budgets" element={<BudgetPage />} />
             <Route path="/accounts" element={<AccountsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

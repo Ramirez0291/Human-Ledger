@@ -1,22 +1,19 @@
-name: human-ledger
+# 使用前先复制环境变量文件：cp .env.example .env
+# 生产部署务必在 .env 中设置 SECRET_KEY，否则服务会拒绝启动。
+name: renlei-zhangben
 services:
   app:
     build: .
-    container_name: human-ledger
+    container_name: renlei-zhangben
     ports:
-      - "${PORT:-8000}:8000"
+      - "8000:8000"
+    env_file:
+      - .env
     environment:
-      APP_ENV: production
-      DEBUG: "false"
+      # 容器内固定路径，与 volume 挂载点一致
       DATA_DIR: /app/data
-      SECRET_KEY: ${SECRET_KEY:-}
-      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-true}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      DEFAULT_LOCALE: ${DEFAULT_LOCALE:-zh-CN}
-      TIMEZONE: ${TIMEZONE:-Asia/Tokyo}
-      TZ: ${TIMEZONE:-Asia/Tokyo}
     volumes:
-      # All your data lives here
+      # SQLite 数据库与上传的截图，不挂载则容器重建即丢数据
       - ./data:/app/data
     restart: unless-stopped
     healthcheck:

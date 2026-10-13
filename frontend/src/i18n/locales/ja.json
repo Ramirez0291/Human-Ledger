@@ -4,7 +4,7 @@
     "nativeName": "日本語"
   },
   "app": {
-    "name": "Human Ledger",
+    "name": "人類家計簿",
     "tagline": "日本で暮らす人のための家計簿"
   },
   "common": {
@@ -24,7 +24,8 @@
     "prevMonth": "前の月",
     "nextMonth": "次の月",
     "prevPage": "前のページ",
-    "nextPage": "次のページ"
+    "nextPage": "次のページ",
+    "reset": "元に戻す"
   },
   "setup": {
     "title": "初期設定",
@@ -54,7 +55,8 @@
     "accounts": "口座",
     "settings": "設定",
     "import": "取り込み",
-    "reports": "レポート"
+    "reports": "レポート",
+    "budget": "予算"
   },
   "action": {
     "addTransaction": "入力する",
@@ -86,7 +88,13 @@
     "reconcileAlertDesc": "システムの計算残高と実際の残高に差があります。記録漏れの可能性があります。",
     "emptyTitle": "まず口座を作成",
     "emptyDesc": "記録には口座が必要です。実際に使っている銀行・クレジットカード・PayPay・現金などを登録してください。",
-    "emptyAction": "口座を作成"
+    "emptyAction": "口座を作成",
+    "recentTitle": "最近の記録",
+    "recentEmpty": "今月の記録はまだありません。",
+    "allTransactions": "すべての明細",
+    "toReports": "レポート",
+    "emptyDesc_CN": "記帳にはまず口座が必要です。実際に使っているもの（WeChat 零銭、Alipay 残高、銀行カード、クレジットカード、現金）を作るか、「取り込み」で WeChat / Alipay の明細をアップロードすれば口座が自動で作られます。",
+    "emptyAction_CN": "WeChat / Alipay の明細を取り込む"
   },
   "txn": {
     "searchPlaceholder": "店名・メモを検索",
@@ -122,7 +130,9 @@
     "installmentTotal": "回数",
     "installmentTotalAmount": "総額",
     "excludeFromAnalysis": "月次分析に含めない",
-    "excludeFromAnalysisHint": "一時的な高額・予定外の支出（引っ越し・PC 購入・入院など）。残高には反映され、レポートの「日常の支出」からだけ外れます。"
+    "excludeFromAnalysisHint": "一時的な高額・予定外の支出（引っ越し・PC 購入・入院など）。残高には反映され、レポートの「日常の支出」からだけ外れます。",
+    "clear": "クリア",
+    "quickSaved": "記録しました：{{merchant}} ¥{{amount}}"
   },
   "transfer": {
     "from": "出金元",
@@ -131,7 +141,9 @@
     "feeHint": "海外送金手数料など。手数料は実際の支出として別途記録されます。",
     "feeCategory": "手数料のカテゴリ",
     "errorSameAccount": "同じ口座は選べません",
-    "explainer": "ATM出金、PayPayチャージ、カード引落、交通ICチャージは振替です。振替は収支に計上されません（二重計上を防ぐため）。"
+    "explainer": "ATM出金、PayPayチャージ、カード引落、交通ICチャージは振替です。振替は収支に計上されません（二重計上を防ぐため）。",
+    "quickSaved": "振替しました ¥{{amount}}",
+    "explainer_CN": "現金の引き出し、零銭のチャージ・出金、クレジットカードの返済、余額宝・零銭通への入金はすべて振替です。振替は収支に含めません（同じお金を二重に数えてしまうため）。"
   },
   "account": {
     "add": "口座を追加",
@@ -160,7 +172,13 @@
     "reconcileHint": "差額がプラスなら収入の記録漏れ、マイナスなら支出の記録漏れの可能性があります。",
     "diffWarn": "差額 {{amount}}",
     "emptyTitle": "口座がありません",
-    "emptyDesc": "実際に使っている銀行・クレジットカード・PayPay・現金などを登録してください。"
+    "emptyDesc": "実際に使っている銀行・クレジットカード・PayPay・現金などを登録してください。",
+    "setBalance": "残高を合わせる",
+    "setBalanceExplainer": "銀行や決済アプリに表示されている今の残高を入力してください。以降はこの金額から計算します。漏れた分をさかのぼって入力する必要はありません。",
+    "balanceSet": "{{amount}} に合わせました。以降はこの金額から計算します。",
+    "balanceSetDiff": "記録からの計算とは {{amount}} 違いました。記録漏れがあったのかもしれませんが、気にしなくて大丈夫です。",
+    "owedBalance": "現在の未払い額",
+    "emptyDesc_CN": "実際に使っているものを作りましょう：WeChat 零銭、Alipay 残高、銀行カード、クレジットカード、現金。WeChat / Alipay の明細を取り込めば、支払方法から口座が自動で作られます。"
   },
   "category": {
     "title": "カテゴリ管理",
@@ -186,7 +204,8 @@
     "about": "情報",
     "database": "データベース",
     "migration": "マイグレーション",
-    "timezone": "タイムゾーン"
+    "timezone": "タイムゾーン",
+    "region": "家計簿の地域"
   },
   "ocr": {
     "title": "スクリーンショット認識方式",
@@ -226,7 +245,17 @@
     "file_too_large": "ファイルが大きすぎます（上限 5 MB）",
     "file_empty": "ファイルが空です",
     "username_taken": "このユーザー名は使われています",
-    "registration_disabled": "新規登録は受け付けていません"
+    "registration_disabled": "新規登録は受け付けていません",
+    "budget_category_not_expense": "予算は支出カテゴリにのみ設定できます",
+    "special_budget_not_found": "特別予算が見つかりません",
+    "date_to_before_date_from": "終了日は開始日以降にしてください",
+    "backup_owner_only": "データベース全体のバックアップは管理者のみ利用できます",
+    "account_ids_mismatch": "ファイルと口座の対応が取れません。ファイルを選び直してください",
+    "account_required": "取り込み先の口座を選んでください",
+    "invalid_ledger_mode": "無効な記録スタイルです",
+    "csv_currency_mismatch": "ファイルの通貨が家計簿と違うため、何も取り込みませんでした。",
+    "unsupported_region": "未対応の地域です",
+    "invalid_payment_accounts": "支払方法と口座の対応が不正です"
   },
   "milestone": {
     "done": "完了",
@@ -237,7 +266,7 @@
     "appendTitle": "このバッチに追加",
     "pasteDesc": "銀行・カード・PayPay アプリのスクリーンショットの文字を行ごとに貼り付けてください（画像を長押しで文字をコピーできます）。日付・金額・店名を認識し、重複を除いて分類したうえで確認画面に表示します。同じバッチに複数枚を続けて貼れます。スクロールで重なった部分は自動で統合されます。",
     "text": "スクリーンショットの文字",
-    "textPlaceholder": "ライフ 新宿店\n842円\n26.09.02\n1回払い\n…",
+    "textPlaceholder": "ライフ此花伝法店\n842円\n26.09.02\n1回払い\n…",
     "statementMonth": "支払月を指定",
     "statementMonthHint": "日付に年がない場合（J-WEST の「6月13日」など）に年を推定するために使います。年付きの日付なら不要です。",
     "parse": "認識する",
@@ -267,7 +296,10 @@
     "sourceText": "スクリーンショットの文字",
     "rerouted": "「{{file}}」は{{profile}}なので「{{account}}」に取り込みました。口座を取り違えると重複判定が効かず、カードの引き落としも支出として数えられてしまいます。",
     "accountMismatch": "「{{file}}」は{{profile}}のようですが、選択中は「{{account}}」で、合う種類の口座も見つかりません。口座を作成するか、下の行ごとに口座を変更してください。",
-    "resultSkippedDuplicate": "登録済み（スキップ）"
+    "resultSkippedDuplicate": "登録済み（スキップ）",
+    "accountsCreated": "口座を新規作成しました：{{names}}。「口座」ページで名前や開始残高を変更できます。",
+    "currencyMismatch": "「{{file}}」を取り込みませんでした：金額が {{currency}}、家計簿は {{ledger}} です。",
+    "pasteDesc_CN": "銀行や決済アプリの明細画面の文字を行ごとに貼り付けてください。日付・金額・店名を認識し、重複を除いて分類したうえで確認に回します。同じバッチに続けて貼り付けでき、重なった部分は自動でまとめます。"
   },
   "staging": {
     "title": "確認待ち",
@@ -301,7 +333,11 @@
       "no_merchant": "店名なし",
       "orphan_amount": "対応する店名なし",
       "unknown": "スキップ",
-      "paid_by_card": "クレジット払い（カード明細側に現れます）"
+      "paid_by_card": "クレジット払い（カード明細側に現れます）",
+      "failed": "支払い失敗・取消",
+      "closed": "取引終了（注文キャンセル、実質的な入出金なし）",
+      "zero_amount": "0 円の記録（後払い注文の仮行）",
+      "refund_of_closed": "終了した注文の返金（元の注文と一緒に除外）"
     },
     "summaryCount": "{{selected}} / {{total}} 件を選択",
     "summaryTransfer": "振替 {{count}} 件 {{amount}}",
@@ -328,8 +364,8 @@
   },
   "csv": {
     "desc": "銀行・カード会社のサイトからダウンロードした CSV 明細。三井住友銀行の口座明細、三井住友カード、楽天カード（e-NAVI）、PayPay の取引履歴は自動判別します。その他の形式は列の意味を指定してください。複数ファイル（複数月分など）を同時に選んで 1 つのバッチにまとめられます。",
-    "files": "CSV ファイル",
-    "filesHint": "Shift_JIS / UTF-8 を自動判別します。",
+    "files": "CSV / Excel ファイル",
+    "filesHint": "UTF-8・GBK・Shift_JIS の CSV と xlsx に対応、自動判別します。",
     "unknownFormat": "未対応の形式",
     "rows": "{{count}} 行",
     "statement": "支払月 {{month}}",
@@ -349,7 +385,20 @@
     "hasHeader": "1 行目は見出し",
     "positiveIsExpense": "1 列金額の正の値は支出",
     "import": "{{count}} 行を取り込む",
-    "removeFile": "{{name}} を外す"
+    "removeFile": "{{name}} を外す",
+    "accountFor": "「{{name}}」の取り込み先",
+    "kindMismatch": "{{kind}}の明細のようです",
+    "kindMismatchHint": "ファイルの形式と口座の種類が合っていません。口座を取り違えると重複を見つけられず、カードの引き落としも支出として数えられます。",
+    "perFileAccountHint": "ファイルごとに取り込み先の口座を選べます。前回の選択とファイル形式から自動で選んでいます。",
+    "multiAccount": "支払方法ごとに口座へ",
+    "currencyMismatch": "通貨が違います（{{currency}}）",
+    "currencyMismatchHint": "このファイルは {{currency}}、家計簿は {{ledger}} のため取り込みません。別の通貨は別の地域の家計簿で管理してください。",
+    "methodsTitle": "支払方法 → 口座",
+    "methodsDesc": "WeChat / Alipay の明細では、各取引の「支払方法」にお金の出どころが書かれています。カード払いはそのカードに、零銭・残高の入出金はウォレットに記帳します。同じカードは両方の明細で同じ口座になります。該当がなければ新しい口座を作り、次回から自動で選びます。",
+    "methodRows": "{{count}} 件",
+    "newAccount": "新規作成「{{name}}」（{{type}}）",
+    "methodFor": "「{{name}}」の記帳先",
+    "desc_CN": "WeChat Pay の明細（「我 → サービス → ウォレット → 明細 → よくある質問 → 明細をダウンロード」、xlsx または CSV）と Alipay の取引明細（「我的 → 账单 → 右上の … → 開具交易流水証明 → 個人の照合用」、メールの ZIP を解凍した CSV）を自動認識し、零銭・残高と連携カードをそれぞれの口座に記帳します。その他の銀行明細は列の意味を指定してください。複数ファイルをまとめて同じバッチに取り込めます。"
   },
   "reports": {
     "expense": "支出",
@@ -424,7 +473,8 @@
     "desc": "完全バックアップにはデータベースとアップロード画像が含まれ、別のマシンにそのまま復元できます。CSV 出力は Excel での分析や他の家計簿アプリへの移行に。",
     "download": "完全バックアップをダウンロード",
     "exportAll": "全取引を CSV 出力",
-    "restoreHint": "復元：サービスを停止してから backend ディレクトリで実行"
+    "restoreHint": "復元：サービスを停止してから backend ディレクトリで実行",
+    "descMember": "自分の明細をすべて CSV で書き出せます。データベース全体のバックアップはこのサーバーの全ユーザーのデータを含むため、管理者のみダウンロードできます。"
   },
   "register": {
     "title": "新規登録",
@@ -450,5 +500,150 @@
     "showAll": "全 {{count}} 件を表示",
     "showLess": "折りたたむ",
     "overlapLater": "後の取り込み{{with}}と重複しています。そちらで対応してください"
+  },
+  "budget": {
+    "addSpecial": "特別予算を追加",
+    "editSpecial": "特別予算を編集",
+    "editDefaults": "基本予算を設定",
+    "setUp": "予算を設定",
+    "viewAll": "予算を見る",
+    "spent": "使った額",
+    "budget": "予算",
+    "projected": "月末の見込み",
+    "dailyAllowance": "1日あたり使える額",
+    "dailyAllowanceShort": "1日あたり {{amount}}",
+    "daysLeft": "残り {{count}} 日",
+    "range": "幅 {{low}} – {{high}}",
+    "baseplusExtra": "基本 {{base}} + 特別 {{extra}}",
+    "flaggedIncluded": "一時的な支出 {{amount}} を含む",
+    "basis": "過去 {{count}} か月の傾向から予測",
+    "basisLinear": "記録が 1 か月分に満たないため、今のペースで推定",
+    "paceSame": "いつもと同じくらいのペース",
+    "paceFaster": "いつもの同時期より {{pct}}% 速いペース",
+    "paceSlower": "いつもの同時期より {{pct}}% ゆっくり",
+    "say": {
+      "none": "今のペースだと月末は {{projected}} の見込みです。予算を決めると、超えそうかどうか前もって分かります。",
+      "onTrack": "今のペースだと月末は {{projected}}、{{amount}} 残る見込みです。",
+      "atRisk": "月末は {{projected}} の見込みで、予算まであと {{amount}} です。少し気をつけましょう。",
+      "likelyExceed": "今のペースだと月末に {{amount}} ほど予算を超えそうです。1日 {{cut}} 抑えれば収まります。",
+      "willExceed": "楽観的に見ても {{amount}} 超える見込みです。1日 {{cut}} 抑えるか、特別予算を追加しましょう。",
+      "over": "予算を {{amount}} 超えています。",
+      "pastOk": "この月は {{spent}} 使い、予算内で {{amount}} 残りました。",
+      "pastOver": "この月は {{spent}} 使い、予算を {{amount}} 超えました。"
+    },
+    "level": {
+      "none": "未設定",
+      "on_track": "順調",
+      "at_risk": "注意",
+      "likely_exceed": "超えそう",
+      "will_exceed": "超える見込み",
+      "over": "超過"
+    },
+    "chartLabel": "今月の累計支出と予算",
+    "budgetLine": "予算 {{amount}}",
+    "dayN": "{{day}}日",
+    "actualCum": "累計の支出",
+    "forecastCum": "累計の見込み",
+    "overBy": "予算を {{amount}} 超過",
+    "leftBy": "予算まであと {{amount}}",
+    "legendActual": "使った額（累計）",
+    "legendForecast": "いつものペースでの予測",
+    "historyTitle": "最近の月",
+    "monthSuffix": "月",
+    "categoriesTitle": "カテゴリ別の予算",
+    "catProjected": "月末の見込み {{amount}}",
+    "includesExtra": "特別予算 {{amount}} を含む",
+    "unbudgeted": "予算未設定のカテゴリで今月 {{amount}} 使っています。",
+    "defaultsTitle": "基本予算",
+    "defaultsDesc": "毎月そのまま使われます。総額だけでも、気になるカテゴリだけでも設定できます。",
+    "emptyDesc": "予算はまだありません。「これまでの傾向で入力」を押して、確認・調整してから保存してください。",
+    "fillSuggestion": "これまでの傾向で入力",
+    "suggestionBasis": "過去 {{count}} か月の中央値（一時的な支出を除く）を入力しました。保存前に調整できます。",
+    "suggestionNone": "記録が 1 か月分に満たないため、まだ提案できません。",
+    "totalBudget": "毎月の総予算",
+    "notSet": "なし",
+    "typical": "いつもは {{amount}}",
+    "saved": "保存しました",
+    "categoriesExceedTotal": "カテゴリの合計 {{amount}} が総予算を上回っています。",
+    "specialsTitle": "特別予算",
+    "specialsDesc": "連休の旅行、ボーナスが出た、ちょっとご褒美——期間を決めて予算を上乗せします。その月の予算が増え、上乗せ分をどれだけ使ったかも別に見られます。",
+    "specialsEmpty": "今月の特別予算はありません。",
+    "otherSpecials": "ほかの月の特別予算（{{count}}）",
+    "allocated": "今月分 {{amount}}",
+    "confirmDeleteSpecial": "特別予算「{{name}}」を削除しますか？",
+    "state": {
+      "upcoming": "これから",
+      "active": "期間中",
+      "ended": "終了"
+    },
+    "presets": "かんたん入力",
+    "kind": "きっかけ",
+    "kinds": {
+      "holiday": "連休",
+      "bonus": "ボーナス",
+      "treat": "ご褒美",
+      "other": "その他"
+    },
+    "preset": {
+      "gw": "ゴールデンウィーク",
+      "obon": "お盆",
+      "newYear": "年末年始",
+      "bonus": "ボーナスが出た",
+      "weekend": "週末のご褒美",
+      "today": "今日はちょっと贅沢",
+      "springFestival": "春節",
+      "mayDay": "メーデー連休",
+      "nationalDay": "国慶節",
+      "double11": "独身の日（ダブルイレブン）"
+    },
+    "specialName": "名前",
+    "extraAmount": "上乗せ額",
+    "from": "開始",
+    "to": "終了",
+    "specialCategory": "カテゴリを限定（任意）",
+    "specialCategoryHint": "選ばなければ月の総予算に上乗せ。選ぶとそのカテゴリの予算にも上乗せします。",
+    "anyCategory": "カテゴリを限定しない",
+    "errorName": "名前を入力してください",
+    "errorRange": "終了日は開始日以降にしてください"
+  },
+  "mode": {
+    "title": "記録のスタイル",
+    "relaxed": "ゆるめ（おすすめ）",
+    "relaxedDesc": "多少の記録漏れは当たり前。残高は最後に入力した実際の残高（または取り込んだ明細の残高）を基準にします。カードは 0 まで、現金・電子マネーは 0 未満にならず、差額の通知もしません。",
+    "strict": "コンプラモード",
+    "strictDesc": "残高は期首残高とすべての明細の合計どおり。合わなければとことん追及します。ズレが大きいほど画面が緊迫し、記録漏れを埋めて照合すれば落ち着きます。"
+  },
+  "compliance": {
+    "calm": "帳簿と実残高は一致",
+    "badge1": "注意",
+    "badge2": "内部監査",
+    "badge3": "監査警告",
+    "badge4": "緊急事態",
+    "level1": "{{amount}} の小さなズレ。まあ、大丈夫……かな？",
+    "level2": "内部監査：帳簿のズレ {{amount}}。早めに照合してください。",
+    "level3": "帳簿のズレ {{amount}}。月平均支出の {{pct}} に相当します。",
+    "level4": "帳簿崩壊：ズレ {{amount}}（月平均支出の {{pct}}）。",
+    "gapsOnly": "{{count}} 件の口座が未照合（または長期間未照合）です。帳簿が落ち着きません。",
+    "quip0": "経理部が見ています。",
+    "quip1": "監査役がすべての明細を取り寄せました。",
+    "quip2": "不要不急の支出はお控えください。",
+    "quip3": "このお金、どこへ行ったのでしょう。",
+    "quip4": "今照合すれば、まだ間に合います。",
+    "details": "内訳（{{count}}）",
+    "hide": "閉じる",
+    "goReconcile": "照合する",
+    "status": {
+      "diff": "差額あり",
+      "unaudited": "未監査",
+      "stale": "長期未照合",
+      "ok": "一致"
+    },
+    "daysAgo": "{{count}} 日前"
+  },
+  "region": {
+    "label": "家計簿の地域",
+    "hint": "通貨・初期カテゴリ・店舗辞書を決めます。作成後は変更できません（同じ数字でも通貨が違えば別の金額になるため）。",
+    "JP": "日本（円）",
+    "CN": "中国（人民元）"
   }
 }

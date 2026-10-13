@@ -3,9 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { api, type OcrProviders, type SystemInfo } from '../api/client'
 import { CategoryManager } from '../components/CategoryManager'
 import { RulesPanel } from '../components/RulesPanel'
+import { useLedger } from '../context/LedgerContext'
+import { ledgerRegion } from '../lib/region'
 
 export function SettingsPage() {
   const { t } = useTranslation()
+  const { ledgerMode, setLedgerMode } = useLedger()
+  const region = ledgerRegion()
 
   const [providers, setProviders] = useState<OcrProviders | null>(null)
   const [system, setSystem] = useState<SystemInfo | null>(null)
@@ -25,6 +29,28 @@ export function SettingsPage() {
     <>
       <div className="page-head">
         <h1>{t('nav.settings')}</h1>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <h2>{t('mode.title')}</h2>
+        </div>
+        <div className="mode-options" role="radiogroup" aria-label={t('mode.title')}>
+          {(['relaxed', 'strict'] as const).map((m) => (
+            <label key={m} className={`mode-option ${ledgerMode === m ? 'on' : ''}`}>
+              <input
+                type="radio"
+                name="ledger-mode"
+                checked={ledgerMode === m}
+                onChange={() => void setLedgerMode(m)}
+              />
+              <span className="mode-option-body">
+                <strong>{t(`mode.${m}`)}</strong>
+                <span className="muted small">{t(`mode.${m}Desc`)}</span>
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="card">
@@ -67,18 +93,22 @@ export function SettingsPage() {
         <div className="card-header">
           <h2>{t('backup.title')}</h2>
         </div>
-        <p className="card-desc">{t('backup.desc')}</p>
+        <p className="card-desc">{t(system?.is_owner ? 'backup.desc' : 'backup.descMember')}</p>
         <div className="backup-actions">
-          <a className="btn-primary link-btn-inline" href={api.backupUrl} download>
-            {t('backup.download')}
-          </a>
-          <a className="btn-ghost link-btn-inline" href={api.exportUrl()} download>
+          {system?.is_owner && (
+            <a className="btn-primary link-btn-inline" href={api.backupUrl} download>
+              {t('backup.download')}
+            </a>
+          )}
+          <a className={`${system?.is_owner ? 'btn-ghost' : 'btn-primary'} link-btn-inline`} href={api.exportUrl()} download>
             {t('backup.exportAll')}
           </a>
         </div>
-        <p className="hint" style={{ marginTop: 10 }}>
-          {t('backup.restoreHint')} <code>python scripts/restore_backup.py &lt;zip&gt;</code>
-        </p>
+        {system?.is_owner && (
+          <p className="hint" style={{ marginTop: 10 }}>
+            {t('backup.restoreHint')} <code>python scripts/restore_backup.py &lt;zip&gt;</code>
+          </p>
+        )}
       </div>
 
       {system && (
@@ -96,6 +126,12 @@ export function SettingsPage() {
             <div>
               <dt>{t('settings.migration')}</dt>
               <dd className="mono">{system.migration_revision ?? '—'}</dd>
+            </div>
+            <div>
+              <dt>{t('settings.region')}</dt>
+              <dd>
+                {t(`region.${region.region}`, region.region)} <span className="mono muted">{region.currency}</span>
+              </dd>
             </div>
             <div>
               <dt>{t('settings.timezone')}</dt>

@@ -1,4 +1,8 @@
-"""Settings, overridable via environment variables or .env."""
+"""应用配置。
+
+所有配置项均可通过环境变量或项目根目录的 .env 覆盖，前缀无。
+参见 .env.example。
+"""
 
 from __future__ import annotations
 
@@ -9,6 +13,7 @@ from pathlib import Path
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# backend/app/core/config.py -> backend/app/core -> backend/app -> backend -> 项目根
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
@@ -19,23 +24,36 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Human Ledger"
+    # ---- 基础 ----
+    app_name: str = "人类账本"
     app_env: str = Field(default="development")  # development | production
     debug: bool = Field(default=True)
 
+    # ---- 安全 ----
+    # 生产环境必须显式设置；未设置时每次启动随机生成（会导致会话失效）
     secret_key: str = Field(default="")
-    session_cookie_name: str = "human_ledger_session"
-    session_max_age_seconds: int = 60 * 60 * 24 * 30
+    session_cookie_name: str = "renlei_session"
+    session_max_age_seconds: int = 60 * 60 * 24 * 30  # 30 天
+    # 通过 HTTPS 部署时应设为 true
     cookie_secure: bool = Field(default=False)
 
+    # ---- 多用户 ----
+    # 是否允许新用户自助注册。个人部署可关掉，只保留首次初始化创建的那个用户
     allow_registration: bool = Field(default=True)
 
+    # ---- 数据 ----
+    # 数据目录：SQLite 文件与上传的截图都放这里，部署时挂载为卷
     data_dir: Path = Field(default=PROJECT_ROOT / "data")
     database_url: str = Field(default="")
 
+    # ---- 本地化 ----
     default_locale: str = Field(default="zh-CN")
+    # 新用户默认的地区包（JP | CN），注册页可改。决定币种、时区、预置类目与商家词典
+    default_region: str = Field(default="JP")
+    # 没有用户上下文时（如解析时推断年份）用的时区；有用户时按其地区包的时区
     timezone: str = Field(default="Asia/Tokyo")
 
+    # ---- OCR（M0 阶段仅占位，不接入）----
     # none | local | cloud_llm
     ocr_provider: str = Field(default="none")
     ocr_api_key: str = Field(default="")
@@ -70,9 +88,21 @@ def get_settings() -> Settings:
     if not s.secret_key:
         if s.is_production:
             raise RuntimeError(
-                "SECRET_KEY must be set in production."
+                "生产环境必须设置 SECRET_KEY 环境变量，否则每次重启都会导致所有会话失效。"
             )
-        s.secret_key = secrets.token_urlsafe(48)
+        # 开发 / 自用：自动生成一次并存进数据目录，之后每次启动沿用——
+        # 否则每重启一次服务，所有人都被登出
+        key_file = s.data_dir / ".secret_key"
+        try:
+            s.secret_key = key_file.read_text(encoding="ascii").strip()
+        except OSError:
+            s.secret_key = ""
+        if not s.secret_key:
+            s.secret_key = secrets.token_urlsafe(48)
+            try:
+                key_file.write_text(s.secret_key, encoding="ascii")
+            except OSError:
+                pass  # 数据目录只读时退回旧行为：本次进程内有效
     return s
 
 

@@ -1,3 +1,5 @@
+"""用户分类规则（需求书 F5.2 第 1 层 / F5.3）。"""
+
 from __future__ import annotations
 
 import re

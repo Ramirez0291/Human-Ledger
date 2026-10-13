@@ -1,3 +1,9 @@
+"""认证：首次初始化、登录、登出、当前状态（需求书 F11）。
+
+首次访问引导设置第一个用户；之后可自助注册更多用户（ALLOW_REGISTRATION 控制），
+每个用户有独立的账户、类目、交易——所有业务表按 user_id 隔离。
+"""
+
 from __future__ import annotations
 
 import datetime as dt
@@ -15,6 +21,7 @@ from app.core.deps import (
 from app.core.security import hash_password, verify_password
 from app.db.models import User
 from app.db.session import get_db
+from app.regions import REGIONS, get_region
 from app.schemas.auth import (
     LocaleUpdate,
     LoginRequest,
@@ -42,6 +49,8 @@ def get_status(
         user=UserOut.model_validate(user) if user else None,
         default_locale=settings.default_locale,
         supported_locales=list(SUPPORTED_LOCALES),
+        default_region=get_region(settings.default_region).key,
+        supported_regions=list(REGIONS),
         app_name=settings.app_name,
         version=APP_VERSION,
     )
@@ -49,6 +58,7 @@ def get_status(
 
 @router.post("/setup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def setup(payload: SetupRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
+    """首次初始化：创建唯一用户并播种预置类目。"""
     if db.query(User).first() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="already_initialized")
 
@@ -59,6 +69,7 @@ def setup(payload: SetupRequest, response: Response, db: Session = Depends(get_d
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def register(payload: SetupRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
+    """自助注册：新用户拿到一套自己的预置类目，登录态直接建立。"""
     if not settings.allow_registration:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="registration_disabled")
     if db.query(User).filter(User.username == payload.username.strip()).first() is not None:
@@ -70,15 +81,19 @@ def register(payload: SetupRequest, response: Response, db: Session = Depends(ge
 
 def _create_user(db: Session, payload: SetupRequest) -> User:
     locale = payload.locale if payload.locale in SUPPORTED_LOCALES else settings.default_locale
+    if payload.region is not None and payload.region.upper() not in REGIONS:
+        raise HTTPException(status_code=400, detail="unsupported_region")
+    region = get_region(payload.region or settings.default_region)
     user = User(
         username=payload.username.strip(),
         password_hash=hash_password(payload.password),
         locale=locale,
+        region=region.key,
     )
     db.add(user)
     db.flush()
 
-    seed_categories(db, user.id)
+    seed_categories(db, user.id, region.key)
     db.commit()
     db.refresh(user)
     return user
@@ -87,7 +102,7 @@ def _create_user(db: Session, payload: SetupRequest) -> User:
 @router.post("/login", response_model=UserOut)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
     user = db.query(User).filter(User.username == payload.username.strip()).first()
-    # Same message for unknown user and wrong password.
+    # 用户名不存在与密码错误返回同一提示，避免暴露用户名是否存在
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
@@ -119,6 +134,7 @@ def update_locale(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> UserOut:
+    """持久化语言偏好，使其跨设备、跨会话保持一致。"""
     if payload.locale not in SUPPORTED_LOCALES:
         raise HTTPException(status_code=400, detail="unsupported_locale")
     user.locale = payload.locale

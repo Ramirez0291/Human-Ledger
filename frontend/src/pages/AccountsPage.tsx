@@ -9,8 +9,9 @@ import {
 } from '../api/client'
 import { Modal } from '../components/Modal'
 import { MoneyInput } from '../components/MoneyInput'
+import { regionContext } from '../lib/region'
 import { useLedger } from '../context/LedgerContext'
-import { formatJPY, todayISO } from '../lib/format'
+import { formatMoney, todayISO } from '../lib/format'
 
 const ACCOUNT_TYPES: AccountType[] = ['bank', 'credit_card', 'emoney', 'prepaid', 'investment', 'cash']
 
@@ -28,7 +29,7 @@ const PALETTE = [
 export function AccountsPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
-  const { accounts, refreshAccounts } = useLedger()
+  const { accounts, refreshAccounts, ledgerMode } = useLedger()
 
   const [editing, setEditing] = useState<Account | null>(null)
   const [creating, setCreating] = useState(false)
@@ -48,7 +49,7 @@ export function AccountsPage() {
       {accounts.length === 0 ? (
         <div className="empty-state card">
           <h2>{t('account.emptyTitle')}</h2>
-          <p className="card-desc">{t('account.emptyDesc')}</p>
+          <p className="card-desc">{t('account.emptyDesc', { context: regionContext() })}</p>
         </div>
       ) : (
         <div className="card">
@@ -63,22 +64,22 @@ export function AccountsPage() {
                     {a.institution ? ` · ${a.institution}` : ''}
                     {' · '}
                     {t('account.txnCount', { count: a.transaction_count })}
-                    {a.last_reconcile_diff !== null && a.last_reconcile_diff !== 0 && (
+                    {ledgerMode === 'strict' && a.last_reconcile_diff !== null && a.last_reconcile_diff !== 0 && (
                       <span className="warn-text">
                         {' · '}
                         {t('account.diffWarn', {
-                          amount: formatJPY(a.last_reconcile_diff, locale),
+                          amount: formatMoney(a.last_reconcile_diff, locale),
                         })}
                       </span>
                     )}
                   </div>
                 </div>
                 <span className={`mono account-balance ${a.balance < 0 ? 'expense' : ''}`}>
-                  {formatJPY(a.balance, locale)}
+                  {formatMoney(a.balance, locale)}
                 </span>
                 <span className="txn-actions">
                   <button className="btn-ghost" onClick={() => setReconciling(a)}>
-                    {t('account.reconcile')}
+                    {t(ledgerMode === 'strict' ? 'account.reconcile' : 'account.setBalance')}
                   </button>
                   <button className="btn-ghost" onClick={() => setEditing(a)}>
                     {t('common.edit')}
@@ -114,7 +115,7 @@ export function AccountsPage() {
 
       <Modal
         open={reconciling !== null}
-        title={t('account.reconcile')}
+        title={t(ledgerMode === 'strict' ? 'account.reconcile' : 'account.setBalance')}
         onClose={() => setReconciling(null)}
       >
         {reconciling && (
@@ -305,6 +306,10 @@ function ReconcileForm({
 }) {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
+  const { ledgerMode } = useLedger()
+  const strict = ledgerMode === 'strict'
+  // 信用卡填「待还多少」更自然；存进去的是负数（欠款）
+  const isCard = account.type === 'credit_card'
   const [date, setDate] = useState(todayISO())
   const [actual, setActual] = useState(0)
   const [result, setResult] = useState<ReconcileResult | null>(null)
@@ -314,12 +319,32 @@ function ReconcileForm({
     e.preventDefault()
     setBusy(true)
     try {
-      const res = await api.reconcile(account.id, { date, actual_balance: actual })
+      const res = await api.reconcile(account.id, { date, actual_balance: isCard ? -actual : actual })
       setResult(res)
       onDone()
     } finally {
       setBusy(false)
     }
+  }
+
+  if (result && !strict) {
+    return (
+      <div className="stack-sm">
+        <div className="alert ok">
+          {t('account.balanceSet', { amount: formatMoney(result.actual_balance, locale) })}
+        </div>
+        {result.diff !== 0 && (
+          <p className="muted small">
+            {t('account.balanceSetDiff', { amount: formatMoney(Math.abs(result.diff), locale) })}
+          </p>
+        )}
+        <div className="form-actions">
+          <button className="btn-primary" onClick={onClose}>
+            {t('common.close')}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (result) {
@@ -329,16 +354,16 @@ function ReconcileForm({
         <div className={`alert ${ok ? 'ok' : 'warn'}`}>
           {ok
             ? t('account.reconcileOk')
-            : t('account.reconcileDiff', { amount: formatJPY(result.diff, locale) })}
+            : t('account.reconcileDiff', { amount: formatMoney(result.diff, locale) })}
         </div>
         <dl className="kv">
           <div>
             <dt>{t('account.computedBalance')}</dt>
-            <dd className="mono">{formatJPY(result.computed_balance, locale)}</dd>
+            <dd className="mono">{formatMoney(result.computed_balance, locale)}</dd>
           </div>
           <div>
             <dt>{t('account.actualBalance')}</dt>
-            <dd className="mono">{formatJPY(result.actual_balance, locale)}</dd>
+            <dd className="mono">{formatMoney(result.actual_balance, locale)}</dd>
           </div>
         </dl>
         {!ok && <p className="hint">{t('account.reconcileHint')}</p>}
@@ -353,7 +378,7 @@ function ReconcileForm({
 
   return (
     <form onSubmit={submit} className="txn-form">
-      <p className="alert info">{t('account.reconcileExplainer')}</p>
+      <p className="alert info">{t(strict ? 'account.reconcileExplainer' : 'account.setBalanceExplainer')}</p>
 
       <div className="field">
         <label htmlFor="rec-date">{t('form.date')}</label>
@@ -361,7 +386,7 @@ function ReconcileForm({
       </div>
 
       <div className="field">
-        <label htmlFor="rec-balance">{t('account.actualBalance')}</label>
+        <label htmlFor="rec-balance">{t(isCard ? 'account.owedBalance' : 'account.actualBalance')}</label>
         <MoneyInput id="rec-balance" value={actual} onChange={setActual} autoFocus />
         <span className="hint">{t('account.actualBalanceHint')}</span>
       </div>
@@ -371,7 +396,7 @@ function ReconcileForm({
           {t('common.cancel')}
         </button>
         <button type="submit" className="btn-primary" disabled={busy}>
-          {t('account.checkBalance')}
+          {t(strict ? 'account.checkBalance' : 'common.save')}
         </button>
       </div>
     </form>

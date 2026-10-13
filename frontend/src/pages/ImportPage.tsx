@@ -14,8 +14,15 @@ import { ImportHistory } from '../components/ImportHistory'
 import { Modal } from '../components/Modal'
 import { StagingTable } from '../components/StagingTable'
 import { useLedger } from '../context/LedgerContext'
-import { currentYearMonth, formatJPY } from '../lib/format'
+import { regionContext } from '../lib/region'
+import { currentYearMonth, formatMoney } from '../lib/format'
 
+/**
+ * 导入页（需求书 F3）。
+ *
+ * 当前来源是「文本粘贴」：把截图上的文字按行贴进来。这等价于本地 OCR 的输出，
+ * OCR 接上后只是省掉手动转录这一步，之后的判重、分类、确认完全相同。
+ */
 export function ImportPage() {
   const { t, i18n } = useTranslation()
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
@@ -32,6 +39,7 @@ export function ImportPage() {
   const [error, setError] = useState('')
 
   const [detail, setDetail] = useState<BatchDetail | null>(null)
+  // 引用稳定的 onChange：待确认区几百行靠 memo 省重渲染，回调一变就全白费
   const onRowsChange = useCallback(
     (rows: StagedRow[]) => setDetail((d) => (d ? { ...d, rows } : d)),
     [],
@@ -52,6 +60,7 @@ export function ImportPage() {
     void loadDrafts()
   }, [loadDrafts])
 
+  // 通过 /import/:batchId 打开已有批次
   useEffect(() => {
     if (!params.batchId) return
     const id = Number(params.batchId)
@@ -68,6 +77,7 @@ export function ImportPage() {
         account_id: accountId,
         text,
         statement_month: useStatementMonth && statementMonth ? statementMonth : null,
+        // 已有草稿则追加，多张截图合并判重
         batch_id: detail?.batch.status === 'draft' ? detail.batch.id : null,
       })
       setDetail(d)
@@ -128,11 +138,12 @@ export function ImportPage() {
 
       {accounts.length === 0 && (
         <div className="empty-state card">
-          <p className="card-desc">{t('account.emptyDesc')}</p>
+          <p className="card-desc">{t('account.emptyDesc', { context: regionContext() })}</p>
         </div>
       )}
 
-      {accounts.length > 0 && (!detail || isDraft) && (
+      {/* 没有账户也能导 CSV：微信账单按支付方式自动建账户。手动粘贴仍需先选账户 */}
+      {(accounts.length > 0 || source === 'csv') && (!detail || isDraft) && (
         <div className="card">
           <div className="card-header import-head">
             <h2>{detail ? t('import.appendTitle') : t('import.sourceTitle')}</h2>
@@ -148,7 +159,7 @@ export function ImportPage() {
 
           {source === 'csv' ? (
             <>
-              <p className="card-desc">{t('csv.desc')}</p>
+              <p className="card-desc">{t('csv.desc', { context: regionContext() })}</p>
               <CsvImportForm
                 batchId={detail?.batch.status === 'draft' ? detail.batch.id : null}
                 onImported={async (d) => {
@@ -160,7 +171,7 @@ export function ImportPage() {
             </>
           ) : (
             <>
-              <p className="card-desc">{t('import.pasteDesc')}</p>
+              <p className="card-desc">{t('import.pasteDesc', { context: regionContext() })}</p>
 
               {error && (
                 <div className="alert error" style={{ marginTop: 12 }}>
@@ -277,7 +288,7 @@ export function ImportPage() {
           )}
           {detail.detected_balance !== null && (
             <p className="hint" style={{ marginTop: 8 }}>
-              {t('import.detectedBalance', { amount: formatJPY(detail.detected_balance, locale) })}
+              {t('import.detectedBalance', { amount: formatMoney(detail.detected_balance, locale) })}
             </p>
           )}
           {detail.warnings
@@ -287,6 +298,20 @@ export function ImportPage() {
               return (
                 <div key={w} className={`alert ${kind === 'rerouted' ? 'ok' : 'warn'}`} style={{ marginTop: 10 }}>
                   {t(kind === 'rerouted' ? 'import.rerouted' : 'import.accountMismatch', { file, profile, account })}
+                </div>
+              )
+            })}
+          {detail.warnings
+            .filter((w) => w.startsWith('accounts_created|') || w.startsWith('currency_mismatch|'))
+            .map((w) => {
+              const [kind, a, b, c] = w.split('|')
+              return kind === 'accounts_created' ? (
+                <div key={w} className="alert ok" style={{ marginTop: 10 }}>
+                  {t('import.accountsCreated', { names: a })}
+                </div>
+              ) : (
+                <div key={w} className="alert warn" style={{ marginTop: 10 }}>
+                  {t('import.currencyMismatch', { file: a, currency: b, ledger: c })}
                 </div>
               )
             })}
@@ -359,11 +384,11 @@ export function ImportPage() {
                 {result.reconcile.diff === 0
                   ? t('import.reconcileOk', {
                       account: result.reconcile.account_name,
-                      amount: formatJPY(result.reconcile.actual_balance, locale),
+                      amount: formatMoney(result.reconcile.actual_balance, locale),
                     })
                   : t('import.reconcileDiff', {
                       account: result.reconcile.account_name,
-                      amount: formatJPY(result.reconcile.diff, locale),
+                      amount: formatMoney(result.reconcile.diff, locale),
                     })}
               </div>
             )}

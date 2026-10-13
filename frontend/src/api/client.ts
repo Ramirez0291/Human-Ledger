@@ -1,4 +1,4 @@
-/* API client. Session is an HttpOnly cookie, so always send credentials. */
+/** 后端 API 封装。会话走 HttpOnly Cookie，因此所有请求都要带 credentials。 */
 
 export class ApiError extends Error {
   constructor(
@@ -42,6 +42,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return payload as T
 }
 
+/** multipart 上传：不能手动设 Content-Type，浏览器要自己带 boundary。 */
 async function upload<T>(path: string, form: FormData): Promise<T> {
   const res = await fetch(`/api${path}`, { method: 'POST', credentials: 'include', body: form })
   const text = await res.text()
@@ -75,10 +76,19 @@ function qs(params: Record<string, string | number | boolean | undefined | null>
   return s ? `?${s}` : ''
 }
 
+// ---- 基础类型 ----
+
 export interface User {
   id: number
   username: string
   locale: string
+  /** 实例所有者（第一个用户）才能下载整库备份 */
+  is_owner?: boolean
+  /** 地区包（JP / CN）：决定币种、预置类目与商家词典，建用户时选定 */
+  region: string
+  currency: string
+  /** 金额的小数位：API 里的金额 = 显示金额 × 10^minor_unit（日元 0、人民币 2） */
+  minor_unit: number
 }
 
 export interface AppStatus {
@@ -88,6 +98,8 @@ export interface AppStatus {
   user: User | null
   default_locale: string
   supported_locales: string[]
+  default_region: string
+  supported_regions: string[]
   app_name: string
   version: string
 }
@@ -98,11 +110,14 @@ export interface SystemInfo {
   migration_revision: string | null
   timezone: string
   database: string
+  /** 整库备份只给实例所有者 */
+  is_owner: boolean
 }
 
 export interface OcrProviderInfo {
   key: string
   available: boolean
+  /** i18n 词条 key，由前端翻译；后端不返回已翻译文案（需求书 F10） */
   reason_key: string
   active: boolean
 }
@@ -112,6 +127,8 @@ export interface OcrProviders {
   providers: OcrProviderInfo[]
   note_key: string
 }
+
+// ---- 账户 ----
 
 export type AccountType = 'cash' | 'bank' | 'credit_card' | 'emoney' | 'prepaid' | 'investment'
 
@@ -153,6 +170,8 @@ export interface ReconcileResult {
   diff: number
 }
 
+// ---- 类目 ----
+
 export interface CategoryNode {
   id: number
   key: string
@@ -166,6 +185,8 @@ export interface CategoryNode {
   is_hidden: boolean
   children: CategoryNode[]
 }
+
+// ---- 交易 ----
 
 export type Direction = 'expense' | 'income' | 'transfer_out' | 'transfer_in'
 
@@ -239,6 +260,8 @@ export interface TransactionFilters {
   page_size?: number
 }
 
+// ---- 总览 ----
+
 export interface Summary {
   year_month: string
   income: number
@@ -259,12 +282,18 @@ export interface Summary {
   transaction_count: number
 }
 
+
+// ---- 报表 ----
+
 export interface ReportFilters {
   account_id?: number
   category_id?: number
   q?: string
+  /** true 时把标记为除外的交易也算进来 */
   include_flagged?: boolean
+  /** 单笔支出超过此金额不计入分析 */
   max_single?: number
+  /** 逗号分隔的类目 id */
   exclude_categories?: string
 }
 
@@ -299,6 +328,7 @@ export interface CategoryBreakdown {
 export interface ReportOverview {
   year_month: string
   totals: ReportTotals
+  /** 除外之前的原貌 */
   raw_totals: ReportTotals
   excluded: { expense: number; income: number; count: number }
   previous: ReportTotals
@@ -344,9 +374,94 @@ export interface LargeExpense {
   over_threshold: boolean
   account_id: number
   account_name: string
+  /** 像信用卡还款 / 取现 / 充值 / 转入证券：钱只是换了账户 */
   transfer_like: boolean
   suggested_counterpart_id: number | null
 }
+
+// ---- 预算 ----
+
+export type BudgetStatusLevel = 'none' | 'on_track' | 'at_risk' | 'likely_exceed' | 'will_exceed' | 'over'
+export type SpecialBudgetKind = 'holiday' | 'bonus' | 'treat' | 'other'
+
+export interface DefaultBudget {
+  id: number
+  category_id: number | null
+  amount: number
+  alert_threshold_pct: number
+  name: string | null
+  icon: string | null
+  color: string | null
+}
+
+export interface SpecialBudget {
+  id: number
+  name: string
+  kind: SpecialBudgetKind
+  amount: number
+  date_from: string
+  date_to: string
+  category_id: number | null
+  category_name: string | null
+  category_icon: string | null
+  memo: string | null
+}
+
+export interface SpecialBudgetInput {
+  name: string
+  kind: SpecialBudgetKind
+  amount: number
+  date_from: string
+  date_to: string
+  category_id: number | null
+  memo?: string | null
+}
+
+export interface BudgetLine {
+  /** 本月生效的预算 = 默认 + 摊到本月的特别预算；没设为 null */
+  budget: number | null
+  base: number | null
+  special_extra: number
+  spent: number
+  projected: number
+  low: number
+  high: number
+  /** 本月到今天 / 往常同期（不含除外） */
+  pace_ratio: number | null
+  status: BudgetStatusLevel
+  threshold_pct: number
+  daily_allowance: number | null
+  cut_per_day: number | null
+}
+
+export interface BudgetCategoryLine extends BudgetLine {
+  id: number
+  category_id: number
+  name?: string
+  icon?: string | null
+  color?: string | null
+}
+
+export interface BudgetStatus {
+  year_month: string
+  as_of: string
+  days_in_month: number
+  elapsed_days: number
+  basis_months: number
+  total: BudgetLine & { id: number | null; flagged_spent: number; path: number[] }
+  categories: BudgetCategoryLine[]
+  unbudgeted_spent: number | null
+  specials: (SpecialBudget & { allocated: number; spent: number; state: 'upcoming' | 'active' | 'ended' })[]
+  history: { year_month: string; budget: number; spent: number }[]
+}
+
+export interface BudgetSuggestion {
+  basis_months: number
+  total: number | null
+  categories: { category_id: number; amount: number; months: number; name?: string; icon?: string | null; color?: string | null }[]
+}
+
+// ---- 导入 / 待确认区 ----
 
 export type DupStatus = 'none' | 'merged' | 'duplicate' | 'maybe'
 export type CategorySource = 'rule' | 'memory' | 'dictionary' | 'llm' | 'none'
@@ -401,12 +516,15 @@ export interface ImportBatch {
   excluded_rows: number
   duplicate_rows: number
   maybe_rows: number
+  /** 已确认 / 已撤销批次的入账概况 */
   ledger_rows: number
   date_from: string | null
   date_to: string | null
   account_names: string[]
   overlap_rows: number
+  /** 其中与更早的记录重叠的行（这批是多出来的那份） */
   redundant_rows: number
+  /** 与哪个批次重叠多少行；键 0 = 手动记账 */
   overlaps: Record<string, number>
 }
 
@@ -435,12 +553,13 @@ export interface StagedRowUpdate {
   is_selected?: boolean
   counterpart_account_id?: number
   clear_counterpart?: boolean
-  clear_category?: boolean
+  clear_category?: boolean  /** 改类别时连带同批次里同商家 / 同品牌的行（默认开） */
   apply_to_similar?: boolean
 }
 
 export interface StagedRowPatch {
   row: StagedRow
+  /** 因 apply_to_similar 被连带改掉的行 */
   affected: StagedRow[]
 }
 
@@ -490,12 +609,56 @@ export interface CsvFilePreview {
   statement_month: string | null
   previously_imported: boolean
   warnings: string[]
+  /** 这个文件建议放进哪个账户（逐文件推荐） */
+  suggested_account_id: number | null
+  /** 跨账户的账单（微信）：不选文件账户，按支付方式映射 */
+  multi_account: boolean
+  currency: string | null
+  /** 文件币种与账本不符，导入时会跳过 */
+  currency_mismatch: boolean
+}
+
+/** 跨账户账单里出现的一种支付方式 */
+export interface PaymentMethod {
+  /** 归一后的键：「招商银行(0575)」 */
+  key: string
+  /** 原文里最完整的写法：「招商银行信用卡(0575)」 */
+  label: string
+  count: number
+  /** 现在能对上的账户（上次的选择或按名字猜）；null 表示会新建 */
+  account_id: number | null
+  new_name: string
+  new_type: AccountType
+  new_institution: string | null
+}
+
+export type LedgerMode = 'relaxed' | 'strict'
+
+/** 合规模式的账面紧张度：0 账实相符 … 4 账目失控 */
+export interface Compliance {
+  level: 0 | 1 | 2 | 3 | 4
+  total_abs_diff: number
+  monthly_base: number
+  ratio: number
+  gaps: number
+  mode: LedgerMode
+  accounts: {
+    account_id: number
+    name: string
+    status: 'diff' | 'unaudited' | 'stale' | 'ok'
+    diff: number
+    date: string | null
+    days: number | null
+  }[]
 }
 
 export interface CsvPreview {
   files: CsvFilePreview[]
   suggested_account_id: number | null
+  payment_methods: PaymentMethod[]
 }
+
+// ---- 规则 ----
 
 export type MatchType = 'exact' | 'contains' | 'regex'
 
@@ -510,11 +673,14 @@ export interface Rule {
   enabled: boolean
 }
 
+// ---- 接口 ----
+
 export const api = {
+  // 认证
   status: () => request<AppStatus>('/status'),
-  setup: (body: { username: string; password: string; locale: string }) =>
+  setup: (body: { username: string; password: string; locale: string; region?: string }) =>
     request<User>('/setup', { method: 'POST', body: JSON.stringify(body) }),
-  register: (body: { username: string; password: string; locale: string }) =>
+  register: (body: { username: string; password: string; locale: string; region?: string }) =>
     request<User>('/register', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { username: string; password: string }) =>
     request<User>('/login', { method: 'POST', body: JSON.stringify(body) }),
@@ -522,10 +688,12 @@ export const api = {
   updateLocale: (locale: string) =>
     request<User>('/me/locale', { method: 'PATCH', body: JSON.stringify({ locale }) }),
 
+  // 元数据
   system: () => request<SystemInfo>('/system'),
   ocrProviders: () => request<OcrProviders>('/ocr/providers'),
   summary: (yearMonth?: string) => request<Summary>(`/summary${qs({ year_month: yearMonth })}`),
 
+  // 账户
   accounts: (includeArchived = false) =>
     request<Account[]>(`/accounts${qs({ include_archived: includeArchived })}`),
   createAccount: (body: AccountInput) =>
@@ -539,6 +707,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  // 类目
   categories: (locale?: string, type?: 'expense' | 'income') =>
     request<CategoryNode[]>(`/categories${qs({ locale, type })}`),
   createCategory: (body: {
@@ -559,6 +728,7 @@ export const api = {
   ) => request<CategoryNode>(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteCategory: (id: number) => request<void>(`/categories/${id}`, { method: 'DELETE' }),
 
+  // 交易
   transactions: (filters: TransactionFilters = {}) =>
     request<TransactionPage>(`/transactions${qs({ ...filters })}`),
   createTransaction: (body: TransactionInput) =>
@@ -576,6 +746,7 @@ export const api = {
       `/transactions/suggest-category${qs({ merchant })}`,
     ),
 
+  // 导入
   importBatches: (status?: BatchStatus) => request<ImportBatch[]>(`/imports${qs({ status })}`),
   importText: (body: {
     account_id: number
@@ -607,15 +778,27 @@ export const api = {
     for (const f of files) form.append('files', f, f.name)
     return upload<CsvPreview>('/imports/csv/preview', form)
   },
-  importCsv: (files: File[], accountId: number, mapping?: ColumnMapping | null, batchId?: number | null) => {
+  /**
+   * accountIds 与 files 一一对应：每个文件各自入账到自己的账户。跨账户的账单（微信）传 0，
+   * 改由 paymentAccounts（支付方式键 → 账户 id 或 'new'）逐行决定。
+   */
+  importCsv: (
+    files: File[],
+    accountIds: number[],
+    mapping?: ColumnMapping | null,
+    batchId?: number | null,
+    paymentAccounts?: Record<string, number | 'new'> | null,
+  ) => {
     const form = new FormData()
     for (const f of files) form.append('files', f, f.name)
-    form.append('account_id', String(accountId))
+    for (const id of accountIds) form.append('account_ids', String(id))
     if (mapping) form.append('mapping', JSON.stringify(mapping))
     if (batchId) form.append('batch_id', String(batchId))
+    if (paymentAccounts) form.append('payment_accounts', JSON.stringify(paymentAccounts))
     return upload<BatchDetail>('/imports/csv', form)
   },
 
+  // 规则
   rules: () => request<Rule[]>('/rules'),
   createRule: (body: {
     match_type: MatchType
@@ -636,6 +819,7 @@ export const api = {
   ) => request<Rule>(`/rules/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteRule: (id: number) => request<void>(`/rules/${id}`, { method: 'DELETE' }),
 
+  // 报表 / 导出 / 备份
   reportOverview: (yearMonth: string, f: ReportFilters = {}) =>
     request<ReportOverview>(`/reports/overview${qs({ year_month: yearMonth, ...f })}`),
   reportTrend: (end: string, months: number, f: ReportFilters = {}) =>
@@ -654,6 +838,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ counterpart_account_id: counterpartAccountId }),
     }),
+  preferences: () => request<{ ledger_mode: LedgerMode }>('/preferences'),
+  compliance: () => request<Compliance>('/compliance'),
+  setPreferences: (body: { ledger_mode: LedgerMode }) =>
+    request<{ ledger_mode: LedgerMode }>('/preferences', { method: 'PATCH', body: JSON.stringify(body) }),
+
+  // 预算
+  budgets: () => request<{ defaults: DefaultBudget[]; specials: SpecialBudget[] }>('/budgets'),
+  setDefaultBudget: (body: { category_id: number | null; amount: number; alert_threshold_pct?: number }) =>
+    request<DefaultBudget>('/budgets/default', { method: 'PUT', body: JSON.stringify(body) }),
+  deleteDefaultBudget: (id: number) => request<void>(`/budgets/default/${id}`, { method: 'DELETE' }),
+  budgetStatus: (yearMonth: string) => request<BudgetStatus>(`/budgets/status${qs({ year_month: yearMonth })}`),
+  budgetSuggest: () => request<BudgetSuggestion>('/budgets/suggest'),
+  createSpecialBudget: (body: SpecialBudgetInput) =>
+    request<SpecialBudget>('/budgets/special', { method: 'POST', body: JSON.stringify(body) }),
+  updateSpecialBudget: (id: number, body: Partial<SpecialBudgetInput> & { clear_category?: boolean }) =>
+    request<SpecialBudget>(`/budgets/special/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteSpecialBudget: (id: number) => request<void>(`/budgets/special/${id}`, { method: 'DELETE' }),
+  /** 导出走浏览器原生下载（带 Cookie），所以只给 URL 不发请求 */
   exportUrl: (f: TransactionFilters = {}) => `/api/transactions/export.csv${qs({ ...f })}`,
   backupUrl: '/api/backup',
 }

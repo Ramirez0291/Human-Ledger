@@ -1,0 +1,298 @@
+/* ==========================================================================
+   合规模式：账面越对不上，界面越紧张（.app-shell[data-tension="0..4"]）
+   轻松模式不设 data-tension，以下规则全部不生效。
+   ========================================================================== */
+
+.app-shell[data-tension] {
+  --tension: var(--ok);
+}
+
+.app-shell[data-tension='1'] {
+  --tension: #d9a400;
+}
+
+.app-shell[data-tension='2'] {
+  --tension: var(--warn);
+}
+
+.app-shell[data-tension='3'],
+.app-shell[data-tension='4'] {
+  --tension: var(--danger);
+}
+
+.app-shell[data-tension] .app-top {
+  border-bottom: 2px solid color-mix(in srgb, var(--tension) 70%, transparent);
+}
+
+/* ---- 状态条 ---- */
+
+.compliance-bar {
+  padding: 6px 20px 8px;
+  font-size: 0.8125rem;
+}
+
+.compliance-bar.calm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.compliance-seal {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 0.75rem;
+  color: var(--surface-solid);
+  background: var(--ok);
+  border-radius: 50%;
+}
+
+.compliance-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.compliance-main .spacer {
+  flex: 1;
+}
+
+.compliance-badge {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--tension);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.compliance-headline {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.compliance-quip {
+  color: var(--tension);
+  font-style: italic;
+  animation: quip-in 0.4s var(--ease);
+}
+
+@keyframes quip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.compliance-toggle,
+.compliance-action {
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--tension);
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--tension) 60%, transparent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.compliance-action {
+  color: #fff;
+  background: var(--tension);
+  border-color: var(--tension);
+}
+
+.compliance-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compliance-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compliance-stamp {
+  padding: 0 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  transform: rotate(-4deg);
+}
+
+.compliance-stamp.diff {
+  color: var(--danger);
+}
+
+.compliance-stamp.unaudited,
+.compliance-stamp.stale {
+  color: var(--warn);
+}
+
+/* ---- 1–2 级：横幅着色 ---- */
+
+.compliance-bar.level-1,
+.compliance-bar.level-2 {
+  background: color-mix(in srgb, var(--tension) 12%, transparent);
+}
+
+.compliance-bar.level-2 {
+  animation: tension-breathe 4s ease-in-out infinite;
+}
+
+@keyframes tension-breathe {
+  50% {
+    background: color-mix(in srgb, var(--tension) 22%, transparent);
+  }
+}
+
+/* ---- 3 级：整页红色暗角缓慢脉动 ---- */
+
+.compliance-bar.level-3,
+.compliance-bar.level-4 {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+}
+
+.app-shell[data-tension='3']::after,
+.app-shell[data-tension='4']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(225, 29, 72, 0.16) 100%);
+  animation: vignette-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes vignette-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.app-shell[data-tension='3'] .brand svg,
+.app-shell[data-tension='4'] .brand svg {
+  filter: hue-rotate(140deg) saturate(1.6);
+}
+
+.app-shell[data-tension='3'] .expense,
+.app-shell[data-tension='4'] .expense {
+  text-shadow: 0 0 12px rgba(225, 29, 72, 0.45);
+}
+
+/* ---- 4 级：警戒条纹、急促的心跳、标题抖动、扫描线 ---- */
+
+.compliance-bar.level-4 {
+  position: relative;
+  overflow: hidden;
+}
+
+.compliance-bar.level-4::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: repeating-linear-gradient(-45deg, var(--danger) 0 10px, #111 10px 20px);
+  background-size: 28px 4px;
+  animation: hazard 0.8s linear infinite;
+}
+
+@keyframes hazard {
+  to {
+    background-position: 28px 0;
+  }
+}
+
+.compliance-bar.level-4 .compliance-badge {
+  animation: siren 1s steps(2, jump-none) infinite;
+}
+
+@keyframes siren {
+  50% {
+    background: #111;
+    color: var(--danger);
+  }
+}
+
+.compliance-bar.level-4 .compliance-headline {
+  animation: glitch 5s infinite;
+}
+
+@keyframes glitch {
+  0%,
+  92%,
+  100% {
+    text-shadow: none;
+    transform: none;
+  }
+  93% {
+    text-shadow: 2px 0 var(--danger), -2px 0 #00c2ff;
+    transform: translateX(-1px);
+  }
+  95% {
+    text-shadow: -2px 0 var(--danger), 2px 0 #00c2ff;
+    transform: translateX(1px);
+  }
+  97% {
+    text-shadow: none;
+    transform: skewX(-4deg);
+  }
+}
+
+.app-shell[data-tension='4']::after {
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.035) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 45%, rgba(225, 29, 72, 0.28) 100%);
+  animation-duration: 1.1s;
+}
+
+.app-shell[data-tension='4'] .page-head h1 {
+  animation: shiver 7s infinite;
+}
+
+@keyframes shiver {
+  0%,
+  96%,
+  100% {
+    transform: none;
+  }
+  97% {
+    transform: translate(1px, -1px) rotate(-0.4deg);
+  }
+  98% {
+    transform: translate(-1px, 1px) rotate(0.4deg);
+  }
+}
+
+/* 系统要求减少动效时：保留颜色与文字，去掉所有动画 */
+@media (prefers-reduced-motion: reduce) {
+  .compliance-bar,
+  .compliance-bar *,
+  .compliance-bar::before,
+  .app-shell[data-tension]::after,
+  .app-shell[data-tension] .page-head h1 {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .compliance-bar {
+    padding: 6px 14px 8px;
+  }
+  .compliance-quip {
+    width: 100%;
+  }
+}

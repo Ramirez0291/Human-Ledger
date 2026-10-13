@@ -6,12 +6,17 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher'
 
 interface Props {
   onDone: (user: User) => void
+  /** setup：首次初始化（唯一入口）；register：已有用户时的自助注册 */
   mode?: 'setup' | 'register'
   onBack?: () => void
+  /** 可选的账本地区（后端地区包）。只有一个时不显示选择 */
+  regions?: string[]
+  defaultRegion?: string
 }
 
-export function SetupPage({ onDone, mode = 'setup', onBack }: Props) {
+export function SetupPage({ onDone, mode = 'setup', onBack, regions = [], defaultRegion }: Props) {
   const { t, i18n } = useTranslation()
+  const [region, setRegion] = useState(defaultRegion ?? regions[0] ?? 'JP')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -33,7 +38,7 @@ export function SetupPage({ onDone, mode = 'setup', onBack }: Props) {
 
     setBusy(true)
     try {
-      const body = { username, password, locale: i18n.resolvedLanguage ?? 'zh-CN' }
+      const body = { username, password, locale: i18n.resolvedLanguage ?? 'zh-CN', region }
       const user = mode === 'register' ? await api.register(body) : await api.setup(body)
       onDone(user)
     } catch (err) {
@@ -79,6 +84,20 @@ export function SetupPage({ onDone, mode = 'setup', onBack }: Props) {
               required
             />
           </div>
+
+          {regions.length > 1 && (
+            <div className="field">
+              <label htmlFor="region">{t('region.label')}</label>
+              <select id="region" value={region} onChange={(e) => setRegion(e.target.value)}>
+                {regions.map((r) => (
+                  <option key={r} value={r}>
+                    {t(`region.${r}`, r)}
+                  </option>
+                ))}
+              </select>
+              <span className="hint">{t('region.hint')}</span>
+            </div>
+          )}
 
           <div className="field">
             <label htmlFor="password">{t('setup.password')}</label>

@@ -7,7 +7,7 @@ import { Modal } from '../components/Modal'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransferForm } from '../components/TransferForm'
 import { useLedger } from '../context/LedgerContext'
-import { currentYearMonth, formatDateShort, formatJPY, formatWeekday, monthRange, shiftYearMonth, formatYearMonth } from '../lib/format'
+import { currentYearMonth, formatDateShort, formatMoney, formatWeekday, monthRange, shiftYearMonth, formatYearMonth } from '../lib/format'
 
 const PAGE_SIZE = 50
 
@@ -16,6 +16,7 @@ export function TransactionsPage() {
   const locale = i18n.resolvedLanguage ?? 'zh-CN'
   const { accounts, categories, refreshAccounts } = useLedger()
 
+  // 报表页下钻时通过 URL 带入初始筛选；之后的改动不回写 URL，保持简单
   const [params] = useSearchParams()
   const [ym, setYm] = useState(params.get('ym') ?? currentYearMonth())
   const [accountId, setAccountId] = useState<number | ''>(
@@ -64,6 +65,7 @@ export function TransactionsPage() {
     return () => clearTimeout(timer)
   }, [load, query])
 
+  // 筛选条件变化时回到第一页，否则会停在一个不存在的页码上显示空列表
   useEffect(() => {
     setPage(1)
   }, [ym, accountId, categoryId, query, showTrash])
@@ -86,6 +88,7 @@ export function TransactionsPage() {
     await refresh()
   }
 
+  // 按日期分组，账目多时更容易扫读
   const grouped = useMemo(() => {
     const map = new Map<string, Transaction[]>()
     for (const item of data?.items ?? []) {
@@ -103,6 +106,7 @@ export function TransactionsPage() {
 
   const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE))
 
+  // 导出与当前列表同一套筛选（不含回收站）
   const exportHref = useMemo(() => {
     const { from, to } = monthRange(ym)
     return api.exportUrl({
@@ -189,8 +193,8 @@ export function TransactionsPage() {
       {data && (
         <div className="list-summary">
           <span>{t('txn.count', { count: data.total })}</span>
-          <span className="expense">−{formatJPY(data.sum_expense, locale)}</span>
-          <span className="income">+{formatJPY(data.sum_income, locale)}</span>
+          <span className="expense">−{formatMoney(data.sum_expense, locale)}</span>
+          <span className="income">+{formatMoney(data.sum_income, locale)}</span>
         </div>
       )}
 
@@ -256,8 +260,10 @@ export function TransactionsPage() {
                   </div>
                   <span className={`txn-amount mono ${txn.direction}`}>
                     {txn.direction === 'income' || txn.direction === 'transfer_in' ? '+' : '−'}
-                    {formatJPY(txn.amount, locale)}
+                    {formatMoney(txn.amount, locale)}
                   </span>
+                  {/* 行内操作仅在宽屏显示；窄屏由「点击整行 → 弹窗内删除」承担，
+                      否则这些按钮会把商家名挤没 */}
                   <span className="txn-actions" onClick={(e) => e.stopPropagation()}>
                     {showTrash ? (
                       <button className="btn-ghost" onClick={() => void restore(txn)}>

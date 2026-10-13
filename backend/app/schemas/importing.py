@@ -8,9 +8,13 @@ from app.db.enums import BatchStatus, CategorySource, Direction, DupStatus, Matc
 
 
 class TextImportRequest(BaseModel):
+    """文本粘贴导入：把截图上的文字按行贴进来（等价于本地 OCR 的输出）。"""
+
     account_id: int
     text: str = Field(min_length=1, max_length=200_000)
+    # 支払月锚点（YYYY-MM），用于无年份日期的年份推断；不传则从文本中的年月标题推断
     statement_month: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}$")
+    # 已有草稿批次时追加到该批次（多张截图合并判重），否则新建
     batch_id: int | None = None
 
 
@@ -62,11 +66,13 @@ class BatchOut(BaseModel):
     file_count: int
     note: str | None
     created_at: dt.datetime
+    # 概览计数
     total_rows: int = 0
     selected_rows: int = 0
     excluded_rows: int = 0
     duplicate_rows: int = 0
     maybe_rows: int = 0
+    # 已确认 / 已撤销批次：入账概况（导入记录用）
     ledger_rows: int = 0
     date_from: dt.date | None = None
     date_to: dt.date | None = None
@@ -82,6 +88,7 @@ class BatchDetail(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     detected_balance: int | None = None
     statement_month: str | None = None
+    # 同一份文本之前导入过
     previously_imported: bool = False
 
 
@@ -95,13 +102,18 @@ class StagedRowUpdate(BaseModel):
     memo: str | None = None
     is_selected: bool | None = None
     counterpart_account_id: int | None = None
+    # 显式清空对方账户
     clear_counterpart: bool = False
+    # 显式清空类别
     clear_category: bool = False
+    # 改了类别时，把同批次里同一商家（或同品牌）且尚未由用户改过的行一起改掉。
+    # 这是待确认区提速的关键：一个月 15 笔 RakutenTurbo 只需改一次。
     apply_to_similar: bool = True
 
 
 class StagedRowPatchOut(BaseModel):
     row: StagedRowOut
+    # 因 apply_to_similar 连带更新的其他行
     affected: list[StagedRowOut] = []
 
 
@@ -126,6 +138,9 @@ class ConfirmOut(BaseModel):
     skipped_duplicate: int = 0
     reconcile: dict | None
     warnings: list[str]
+
+
+# ---- 规则 ----
 
 
 class RuleCreate(BaseModel):
@@ -176,8 +191,29 @@ class CsvFilePreview(BaseModel):
     statement_month: str | None
     previously_imported: bool
     warnings: list[str] = Field(default_factory=list)
+    # 这个文件建议放进哪个账户（每个文件各自推荐，界面上可逐个改）
+    suggested_account_id: int | None = None
+    # 跨账户的账单（微信）：不选文件账户，改为逐个支付方式映射（见 CsvPreviewOut.payment_methods）
+    multi_account: bool = False
+    # 文件金额的币种；与账本币种不符时整份拒收
+    currency: str | None = None
+    currency_mismatch: bool = False
+
+
+class PaymentMethodOut(BaseModel):
+    """账单里出现的一种支付方式，以及它该落到哪个账户。"""
+
+    key: str  # 归一后的键：「招商银行(0575)」
+    label: str  # 原文里最完整的写法：「招商银行信用卡(0575)」
+    count: int  # 涉及的行数
+    account_id: int | None = None  # 现在能对上的账户（上次的选择或按名字猜）
+    # 对不上时建议新建的账户
+    new_name: str
+    new_type: str
+    new_institution: str | None = None
 
 
 class CsvPreviewOut(BaseModel):
     files: list[CsvFilePreview]
     suggested_account_id: int | None = None
+    payment_methods: list[PaymentMethodOut] = Field(default_factory=list)

@@ -1,4 +1,14 @@
-"""Default categories. Names live in category_names, one row per locale."""
+"""预置类目种子数据（需求书 F5.1）。
+
+本文件的 EXPENSE_TREE / INCOME_TREE 是日本地区包的类目；按地区取用 `trees_for(region)`。
+
+设计要点：
+- 类目本身只存 i18n key，名称全部落在 category_names 表，按语言一行。
+  新增一种语言只需在 NAMES 里补一列并重新播种，无需改表结构。
+- 大分類 / 中分類 两级。
+- 刻意 **不** 设置「取现」类目：ATM 取现是账户间转账（银行→现金），
+  记为支出会导致同一笔钱被统计两次（需求书 F2）。
+"""
 
 from __future__ import annotations
 
@@ -93,6 +103,7 @@ EXPENSE_TREE: list[SeedCategory] = [
         _c("insurance.life", "❤️", "#64748B", "人寿保险", "生命保険", "Life Insurance"),
         _c("insurance.medical", "🏥", "#64748B", "医疗保险", "医療保険", "Medical Insurance"),
     ]),
+    # 在日外国人高频且金额大，单列一级类目
     _c("tax", "🏛️", "#78716C", "税金与社保", "税金・社会保険", "Tax & Social Insurance", [
         _c("tax.resident", "🏘️", "#78716C", "住民税", "住民税", "Resident Tax"),
         _c("tax.income", "💴", "#78716C", "所得税", "所得税", "Income Tax"),
@@ -140,7 +151,7 @@ def _insert(
         sort_order=order,
     )
     db.add(category)
-    db.flush()
+    db.flush()  # 取回自增 id 供子节点引用
 
     for locale in SUPPORTED_LOCALES:
         db.add(
@@ -155,15 +166,26 @@ def _insert(
         _insert(db, user_id, child, ctype, category.id, child_order)
 
 
-def seed_categories(db: Session, user_id: int) -> int:
+def trees_for(region: str) -> tuple[list[SeedCategory], list[SeedCategory]]:
+    """(支出树, 收入树)。本文件的两棵树是日本地区包的；其他地区在 app/regions/<地区>.py。"""
+    if region == "CN":
+        from app.regions import cn
+
+        return cn.EXPENSE_TREE, cn.INCOME_TREE
+    return EXPENSE_TREE, INCOME_TREE
+
+
+def seed_categories(db: Session, user_id: int, region: str = "JP") -> int:
+    """为新用户播种其地区包的全部预置类目，返回创建的类目数量。"""
     count_before = db.query(Category).filter(Category.user_id == user_id).count()
     if count_before:
         return 0
 
-    for order, node in enumerate(EXPENSE_TREE):
+    expense, income = trees_for(region)
+    for order, node in enumerate(expense):
         _insert(db, user_id, node, CategoryType.expense, None, order)
-    for order, node in enumerate(INCOME_TREE):
-        _insert(db, user_id, node, CategoryType.income, None, len(EXPENSE_TREE) + order)
+    for order, node in enumerate(income):
+        _insert(db, user_id, node, CategoryType.income, None, len(expense) + order)
 
     db.flush()
     return db.query(Category).filter(Category.user_id == user_id).count()

@@ -1,9 +1,14 @@
-# Auto detect text files and perform LF normalization
-* text=auto
-
-# Shell scripts must be LF inside the container
+# 容器内的 shell 脚本必须是 LF，CRLF 会导致 exec 失败（bad interpreter）
 *.sh text eol=lf
 Dockerfile text eol=lf
 docker-compose.yml text eol=lf
 
+# JSON 词条文件统一 LF，避免跨平台协作时产生无意义 diff
 *.json text eol=lf
+
+# 测试截图是需求基准用例，按二进制处理
+docs/测试图片/* binary
+
+# 双击启动脚本：.bat 必须是 CRLF（LF 时 cmd 解析标签与括号块会出错），.command 必须是 LF
+*.bat text eol=crlf
+*.command text eol=lf

@@ -4,7 +4,7 @@
     "nativeName": "简体中文"
   },
   "app": {
-    "name": "Human Ledger",
+    "name": "人类账本",
     "tagline": "为在日本生活的人做的记账工具"
   },
   "common": {
@@ -24,7 +24,8 @@
     "prevMonth": "上个月",
     "nextMonth": "下个月",
     "prevPage": "上一页",
-    "nextPage": "下一页"
+    "nextPage": "下一页",
+    "reset": "还原"
   },
   "setup": {
     "title": "初始化",
@@ -54,7 +55,8 @@
     "accounts": "账户",
     "settings": "设置",
     "import": "导入",
-    "reports": "报表"
+    "reports": "报表",
+    "budget": "预算"
   },
   "action": {
     "addTransaction": "记一笔",
@@ -86,7 +88,13 @@
     "reconcileAlertDesc": "系统算出的余额与你录入的实际余额存在差额，通常说明有交易漏记了。",
     "emptyTitle": "先建一个账户",
     "emptyDesc": "记账需要先有账户。建议按你实际在用的来建：银行、信用卡、PayPay、现金各一个。",
-    "emptyAction": "去建账户"
+    "emptyAction": "去建账户",
+    "recentTitle": "最近记录",
+    "recentEmpty": "这个月还没有记录。",
+    "allTransactions": "全部流水",
+    "toReports": "看报表",
+    "emptyDesc_CN": "记账需要先有账户。可以按实际在用的建（微信零钱、支付宝余额、银行卡、信用卡、现金），也可以直接去「导入」上传微信 / 支付宝账单，账户会自动建好。",
+    "emptyAction_CN": "去导入微信 / 支付宝账单"
   },
   "txn": {
     "searchPlaceholder": "搜索商家或备注",
@@ -122,7 +130,9 @@
     "installmentTotal": "共几期",
     "installmentTotalAmount": "总额",
     "excludeFromAnalysis": "不计入月度分析",
-    "excludeFromAnalysisHint": "一次性的大额或意外开支（搬家、买电脑、住院…）。余额照常计算，只是报表里的「日常支出」不算它。"
+    "excludeFromAnalysisHint": "一次性的大额或意外开支（搬家、买电脑、住院…）。余额照常计算，只是报表里的「日常支出」不算它。",
+    "clear": "清空",
+    "quickSaved": "已记：{{merchant}} ¥{{amount}}"
   },
   "transfer": {
     "from": "从",
@@ -131,7 +141,9 @@
     "feeHint": "如海外汇款手续费。手续费是真实支出，会单独记一笔。",
     "feeCategory": "手续费类别",
     "errorSameAccount": "转出和转入不能是同一个账户",
-    "explainer": "取现、PayPay 充值、信用卡还款、交通IC充值都属于转账。转账不计入收支统计——否则同一笔钱会被算两次。"
+    "explainer": "取现、PayPay 充值、信用卡还款、交通IC充值都属于转账。转账不计入收支统计——否则同一笔钱会被算两次。",
+    "quickSaved": "已转账 ¥{{amount}}",
+    "explainer_CN": "取现、零钱充值 / 提现、信用卡还款、转入余额宝 / 零钱通都属于转账。转账不计入收支统计——否则同一笔钱会被算两次。"
   },
   "account": {
     "add": "添加账户",
@@ -160,7 +172,13 @@
     "reconcileHint": "差额为正说明账户里的钱比记录的多，可能漏记了一笔收入；为负则可能漏记了一笔支出。",
     "diffWarn": "对账差 {{amount}}",
     "emptyTitle": "还没有账户",
-    "emptyDesc": "按你实际在用的来建：银行、信用卡、PayPay、现金各一个即可。"
+    "emptyDesc": "按你实际在用的来建：银行、信用卡、PayPay、现金各一个即可。",
+    "setBalance": "校正余额",
+    "setBalanceExplainer": "填上银行或支付 App 里现在显示的余额，之后就从这个数往下算。漏记的不用回头补。",
+    "balanceSet": "已校正为 {{amount}}，之后从这个数往下算。",
+    "balanceSetDiff": "和记录算出的差 {{amount}}，大概是有几笔没记，没关系。",
+    "owedBalance": "当前待还金额",
+    "emptyDesc_CN": "按你实际在用的来建：微信零钱、支付宝余额、银行卡、信用卡、现金。也可以直接导入微信 / 支付宝账单，账户会按支付方式自动建好。"
   },
   "category": {
     "title": "类目管理",
@@ -186,7 +204,8 @@
     "about": "关于",
     "database": "数据库",
     "migration": "迁移版本",
-    "timezone": "时区"
+    "timezone": "时区",
+    "region": "账本地区"
   },
   "ocr": {
     "title": "截图识别方案",
@@ -226,7 +245,17 @@
     "file_too_large": "文件过大（上限 5 MB）",
     "file_empty": "文件是空的",
     "username_taken": "这个用户名已被使用",
-    "registration_disabled": "本站未开放注册"
+    "registration_disabled": "本站未开放注册",
+    "budget_category_not_expense": "预算只能设在支出类目上",
+    "special_budget_not_found": "找不到这个特别预算",
+    "date_to_before_date_from": "结束日期不能早于开始日期",
+    "backup_owner_only": "只有管理员可以下载整库备份",
+    "account_ids_mismatch": "文件和账户对不上，请重新选择文件",
+    "account_required": "请选择入账账户",
+    "invalid_ledger_mode": "无效的记账风格",
+    "csv_currency_mismatch": "文件的币种与账本不符，没有导入任何内容。",
+    "unsupported_region": "不支持的地区",
+    "invalid_payment_accounts": "支付方式的账户映射无效"
   },
   "milestone": {
     "done": "已完成",
@@ -237,7 +266,7 @@
     "appendTitle": "追加到当前批次",
     "pasteDesc": "把银行 / 信用卡 / PayPay App 截图上的文字按行贴进来（长按截图可复制文字）。系统会识别日期、金额、商家，自动去重并分类，然后交给你核对。同一批可以连续贴多张，滚动截图的重叠部分会自动合并。",
     "text": "截图文字",
-    "textPlaceholder": "ライフ 新宿店\n842円\n26.09.02\n1回払い\n…",
+    "textPlaceholder": "ライフ此花伝法店\n842円\n26.09.02\n1回払い\n…",
     "statementMonth": "指定支払月",
     "statementMonthHint": "截图上的日期没有年份时（如 J-WEST 的「6月13日」），用它推断年份。有完整日期时不需要。",
     "parse": "识别",
@@ -267,7 +296,10 @@
     "sourceText": "粘贴截图文字",
     "rerouted": "「{{file}}」是{{profile}}，已放进「{{account}}」账户。放错账户会让每一行都不被判重，还款也会被当成消费。",
     "accountMismatch": "「{{file}}」看起来是{{profile}}，但选的是「{{account}}」，也没找到对应类型的账户。请先新建账户，或在下方逐行改账户。",
-    "resultSkippedDuplicate": "已在账本中（跳过）"
+    "resultSkippedDuplicate": "已在账本中（跳过）",
+    "accountsCreated": "已新建账户：{{names}}。可以在「账户」页改名或填期初余额。",
+    "currencyMismatch": "已跳过「{{file}}」：金额是 {{currency}}，账本是 {{ledger}}。",
+    "pasteDesc_CN": "把银行 / 支付 App 明细页上的文字按行贴进来。系统会识别日期、金额、商家，自动去重并分类，然后交给你核对。同一批可以连续贴多次，重叠部分会自动合并。"
   },
   "staging": {
     "title": "待确认",
@@ -301,7 +333,11 @@
       "no_merchant": "没有商家",
       "orphan_amount": "孤立金额",
       "unknown": "已跳过",
-      "paid_by_card": "走信用卡支付（会出现在卡账单里）"
+      "paid_by_card": "走信用卡支付（会出现在卡账单里）",
+      "failed": "支付失败 / 已关闭",
+      "closed": "交易关闭（订单取消，钱没有净流动）",
+      "zero_amount": "0 元记录（先用后付的下单占位）",
+      "refund_of_closed": "已关闭订单的退款（和原订单一起不计）"
     },
     "summaryCount": "已勾选 {{selected}} / {{total}} 笔",
     "summaryTransfer": "转账 {{count}} 笔 {{amount}}",
@@ -328,8 +364,8 @@
   },
   "csv": {
     "desc": "从银行 / 信用卡官网下载的 CSV 明细。三井住友銀行口座明細、三井住友カード、楽天カード（e-NAVI）、PayPay 取引履歴会自动识别；其他格式需要指定各列含义。可一次选多个文件（如多个月的账单），进入同一批次。",
-    "files": "CSV 文件",
-    "filesHint": "支持 Shift_JIS 与 UTF-8，自动识别。",
+    "files": "CSV / Excel 文件",
+    "filesHint": "支持 UTF-8、GBK、Shift_JIS 的 CSV 与 xlsx，自动识别。",
     "unknownFormat": "未识别的格式",
     "rows": "{{count}} 行",
     "statement": "支払月 {{month}}",
@@ -349,7 +385,20 @@
     "hasHeader": "第一行是标题",
     "positiveIsExpense": "单列金额中正数表示支出",
     "import": "导入 {{count}} 行",
-    "removeFile": "移除 {{name}}"
+    "removeFile": "移除 {{name}}",
+    "accountFor": "「{{name}}」入账到",
+    "kindMismatch": "看起来是{{kind}}",
+    "kindMismatchHint": "文件格式和所选账户的类型对不上。放错账户会让重复查不出来、还款也会被当成消费。",
+    "perFileAccountHint": "每个文件可以分别选入账账户，默认按你上次的选择和文件格式推荐。",
+    "multiAccount": "按支付方式分账户",
+    "currencyMismatch": "币种不符（{{currency}}）",
+    "currencyMismatchHint": "这个文件的金额是 {{currency}}，账本是 {{ledger}}，导入时会跳过。不同币种请用另一个地区的账本。",
+    "methodsTitle": "支付方式 → 账户",
+    "methodsDesc": "微信 / 支付宝账单里每笔钱从哪出写在「支付方式」里。绑卡支付记在那张卡上，零钱、余额的收支记在钱包上；同一张卡在两份账单里是同一个账户。对不上的会按原文新建账户，下次自动记住。",
+    "methodRows": "{{count}} 笔",
+    "newAccount": "新建「{{name}}」（{{type}}）",
+    "methodFor": "「{{name}}」入账到",
+    "desc_CN": "微信支付账单（「我 → 服务 → 钱包 → 账单 → 常见问题 → 下载账单」，xlsx 或 CSV）与支付宝交易明细（「我的 → 账单 → 右上角 … → 开具交易流水证明 → 用于个人对账」，邮件里的压缩包解压后的 CSV）会自动识别，零钱 / 余额与绑定的银行卡分别入账；其他银行流水可指定各列含义。可一次选多个文件，进入同一批次。"
   },
   "reports": {
     "expense": "支出",
@@ -424,7 +473,8 @@
     "desc": "完整备份包含数据库与上传的截图，可在另一台机器上原样恢复。CSV 导出适合在 Excel 里自己分析，或迁移到别的记账软件。",
     "download": "下载完整备份",
     "exportAll": "导出全部交易 CSV",
-    "restoreHint": "恢复：停止服务后在 backend 目录运行"
+    "restoreHint": "恢复：停止服务后在 backend 目录运行",
+    "descMember": "导出你自己的全部流水（CSV）。整库备份包含这台服务器上所有用户的数据，只有管理员可以下载。"
   },
   "register": {
     "title": "注册",
@@ -450,5 +500,150 @@
     "showAll": "显示全部 {{count}} 条",
     "showLess": "收起",
     "overlapLater": "与之后的导入{{with}}有重复，在那一批处理即可"
+  },
+  "budget": {
+    "addSpecial": "添加特别预算",
+    "editSpecial": "编辑特别预算",
+    "editDefaults": "设置默认预算",
+    "setUp": "设置预算",
+    "viewAll": "查看预算",
+    "spent": "已花",
+    "budget": "预算",
+    "projected": "月底预计",
+    "dailyAllowance": "每天还能花",
+    "dailyAllowanceShort": "每天还能花 {{amount}}",
+    "daysLeft": "还剩 {{count}} 天",
+    "range": "区间 {{low}} – {{high}}",
+    "baseplusExtra": "默认 {{base}} + 特别 {{extra}}",
+    "flaggedIncluded": "含一次性开支 {{amount}}",
+    "basis": "按过去 {{count}} 个月的习惯预测",
+    "basisLinear": "记录还不满一个整月，按目前的速度估算",
+    "paceSame": "花钱节奏和往常差不多",
+    "paceFaster": "比往常同期快 {{pct}}%",
+    "paceSlower": "比往常同期慢 {{pct}}%",
+    "say": {
+      "none": "按目前的习惯，月底预计花 {{projected}}。设个预算，就能提前知道会不会超。",
+      "onTrack": "按目前的习惯，月底预计花 {{projected}}，还能剩 {{amount}}。",
+      "atRisk": "月底预计花 {{projected}}，离预算只差 {{amount}}，稍微留意。",
+      "likelyExceed": "按目前的习惯，月底大概会超出 {{amount}}。接下来每天少花 {{cut}} 就能守住。",
+      "willExceed": "即使往乐观里算也会超出 {{amount}}。接下来每天要少花 {{cut}}，或者给这个月加一笔特别预算。",
+      "over": "已经超出预算 {{amount}}。",
+      "pastOk": "这个月花了 {{spent}}，在预算内，剩下 {{amount}}。",
+      "pastOver": "这个月花了 {{spent}}，超出预算 {{amount}}。"
+    },
+    "level": {
+      "none": "未设",
+      "on_track": "正常",
+      "at_risk": "留意",
+      "likely_exceed": "可能超",
+      "will_exceed": "会超",
+      "over": "已超"
+    },
+    "chartLabel": "本月累计支出与预算",
+    "budgetLine": "预算 {{amount}}",
+    "dayN": "{{day}} 日",
+    "actualCum": "累计已花",
+    "forecastCum": "预计累计",
+    "overBy": "超出预算 {{amount}}",
+    "leftBy": "距预算还有 {{amount}}",
+    "legendActual": "已花（累计）",
+    "legendForecast": "按往常节奏预测",
+    "historyTitle": "近几个月",
+    "monthSuffix": "月",
+    "categoriesTitle": "类目预算",
+    "catProjected": "月底预计 {{amount}}",
+    "includesExtra": "含特别预算 {{amount}}",
+    "unbudgeted": "未设预算的类目本月花了 {{amount}}。",
+    "defaultsTitle": "默认预算",
+    "defaultsDesc": "每个月自动沿用。可以只设总额，也可以只给几个关心的类目设。",
+    "emptyDesc": "还没有预算。点「按过去的习惯填入」，看过、改过再保存就行。",
+    "fillSuggestion": "按过去的习惯填入",
+    "suggestionBasis": "已按过去 {{count}} 个月的中位数填入（不含一次性开支），保存前可以再改。",
+    "suggestionNone": "记录还不满一个整月，暂时给不出建议。",
+    "totalBudget": "每月总预算",
+    "notSet": "不设",
+    "typical": "往常 {{amount}}",
+    "saved": "已保存",
+    "categoriesExceedTotal": "各类目合计 {{amount}}，比总预算还多。",
+    "specialsTitle": "特别预算",
+    "specialsDesc": "节假日出游、发了奖金、想犒劳一下自己——给一段日期额外加一笔，那几天的月预算随之提高，这笔钱花了多少也单独记着。",
+    "specialsEmpty": "这个月没有特别预算。",
+    "otherSpecials": "其他月份的特别预算（{{count}}）",
+    "allocated": "本月摊到 {{amount}}",
+    "confirmDeleteSpecial": "删除特别预算「{{name}}」？",
+    "state": {
+      "upcoming": "未开始",
+      "active": "进行中",
+      "ended": "已结束"
+    },
+    "presets": "快速填入",
+    "kind": "由头",
+    "kinds": {
+      "holiday": "节假日",
+      "bonus": "奖金",
+      "treat": "小奢侈",
+      "other": "其他"
+    },
+    "preset": {
+      "gw": "黄金周",
+      "obon": "盂兰盆节",
+      "newYear": "年末年始",
+      "bonus": "发奖金了",
+      "weekend": "这个周末犒劳自己",
+      "today": "今天奢侈一下",
+      "springFestival": "春节",
+      "mayDay": "五一假期",
+      "nationalDay": "国庆假期",
+      "double11": "双十一"
+    },
+    "specialName": "名称",
+    "extraAmount": "额外预算",
+    "from": "开始",
+    "to": "结束",
+    "specialCategory": "只用于某个类目（可选）",
+    "specialCategoryHint": "不选就加到当月总预算；选了也会加到那个类目的预算上。",
+    "anyCategory": "不限类目",
+    "errorName": "请填写名称",
+    "errorRange": "结束日期不能早于开始日期"
+  },
+  "mode": {
+    "title": "记账风格",
+    "relaxed": "轻松（推荐）",
+    "relaxedDesc": "漏记几笔很正常。余额以你最近一次填的真实余额（或导入明细里的残高）为准；信用卡最多还到 0，现金和电子钱包最少花到 0；不提示对账差额。",
+    "strict": "合规模式",
+    "strictDesc": "余额严格等于期初加全部流水，对不上就追究到底。账面越对不上，界面越紧张——补记漏掉的交易、按时对账，气氛才会缓和。"
+  },
+  "compliance": {
+    "calm": "账实相符",
+    "badge1": "注意",
+    "badge2": "内审",
+    "badge3": "审计警告",
+    "badge4": "紧急状态",
+    "level1": "发现 {{amount}} 的小出入，问题不大……吧？",
+    "level2": "内审提示：账面差额 {{amount}}，请尽快核对。",
+    "level3": "账面差额 {{amount}}，相当于月均支出的 {{pct}}。",
+    "level4": "账目失控：差额 {{amount}}（月均支出的 {{pct}}）。",
+    "gapsOnly": "{{count}} 个账户没有对过账（或太久没对），账本不太放心。",
+    "quip0": "财务部正在看着你。",
+    "quip1": "监察官已调阅全部流水。",
+    "quip2": "请停止一切不必要的消费。",
+    "quip3": "这笔钱，总得有个去处。",
+    "quip4": "现在对账，还来得及。",
+    "details": "明细（{{count}}）",
+    "hide": "收起",
+    "goReconcile": "去对账",
+    "status": {
+      "diff": "有差额",
+      "unaudited": "未审计",
+      "stale": "久未对账",
+      "ok": "相符"
+    },
+    "daysAgo": "{{count}} 天前"
+  },
+  "region": {
+    "label": "账本地区",
+    "hint": "决定币种、预置类目与商家词典。创建后不能更改——同一个数字在不同币种下是不同的金额。",
+    "JP": "日本（日元）",
+    "CN": "中国（人民币）"
   }
 }

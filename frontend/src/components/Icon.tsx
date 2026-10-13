@@ -1,9 +1,16 @@
 import type { SVGProps } from 'react'
 
+/**
+ * 界面图标：一套 24 网格的线性 SVG（Lucide 风格，ISC），继承 currentColor。
+ *
+ * 只放「界面」图标——导航、翻页、关闭这类。类目图标是用户数据里的 emoji，
+ * 不在这里，也不要把它们换成 SVG。
+ */
 export type IconName =
   | 'dashboard'
   | 'list'
   | 'chart'
+  | 'wallet'
   | 'import'
   | 'bank'
   | 'settings'
@@ -31,6 +38,13 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <path d="M3 3v18h18" />
       <path d="m7 15 4-5 4 3 5-7" />
+    </>
+  ),
+  wallet: (
+    <>
+      <path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
+      <path d="M21 9h-6a3 3 0 0 0 0 6h6Z" />
+      <path d="M15.5 12h.01" />
     </>
   ),
   import: (
@@ -92,6 +106,7 @@ export function Icon({ name, size = 18, ...rest }: Props) {
   )
 }
 
+/** 品牌标：渐变圆角方块由 CSS（.brand-mark）负责，这里只画里面的 ¥ 线条 */
 export function BrandMark() {
   return (
     <span className="brand-mark" aria-hidden="true">
